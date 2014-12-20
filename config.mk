@@ -10,17 +10,21 @@ WARNFLAGS := -pedantic -Wvariadic-macros \
 
 INCS := -Ilibutf -Iexpat/lib
 
+#EXTENSION = '.exe'
+
 OPT := -O0
 #COVFLAGS := -ftest-coverage -fprofile-arcs
 
 #STATIC := -static
 
 CPPFLAGS = -DVERSION=\"${VERSION}\" -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=600
-CFLAGS += ${STATIC} -g -std=c11 ${OPT} -pthread -fPIC ${WARNFLAGS} ${INCS} ${CPPFLAGS}
+CFLAGS += ${STATIC} -g -std=c11 ${OPT} -pthread ${WARNFLAGS} ${INCS} ${CPPFLAGS}
+CFLAGS += -fPIC
 #CFLAGS += -Wunsafe-loop-optimizations
 CFLAGS += ${COVFLAGS}
 
-LDFLAGS += ${STATIC} -g ${OPT} -fPIC -lm ${COVFLAGS}
+LDFLAGS += ${STATIC} -g ${OPT} -lm ${COVFLAGS}
+LDFLAGS += -fPIC
 
 RANLIB ?= ranlib
 LCOV ?= true #lcov

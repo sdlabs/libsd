@@ -2,7 +2,10 @@ libsd - System Dynamics for developers
 ======================================
 
 A modern, high-performance, open source system dynamics engine written
-in C, designed for embedding in larger projects.
+in C, designed for embedding in larger projects.  It has been tested
+to build & run on Linux, FreeBSD and Mac OS X.  Patches are welcome
+for Windows support, but its not something I'm focused on right now.
+
 
 Clean, Simple API
 -----------------

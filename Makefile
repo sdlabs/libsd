@@ -5,7 +5,7 @@ OBJ = ${SRC:.c=.o}
 
 LIB = libsd.a
 INC = sd.h
-EXE = mdl
+EXE = mdl${EXTENSION}
 
 HEADERS = sd.h sd_internal.h
 
