@@ -1,0 +1,99 @@
+diff --git a/libutf_modified/Make.Darwin-x86_64 b/libutf_modified/Make.Darwin-x86_64
+new file mode 100644
+index 0000000..7a8f191
+--- /dev/null
++++ b/libutf_modified/Make.Darwin-x86_64
+@@ -0,0 +1,6 @@
++CC=gcc
++CFLAGS+=-Wall -Wno-missing-braces -Wno-parentheses -Wno-switch -fPIC -O2 -g -c -I.
++O=o
++AR=ar
++ARFLAGS=rc
++NAN=nan64.$O
+diff --git a/libutf_modified/Make.FreeBSD-x86_64 b/libutf_modified/Make.FreeBSD-x86_64
+new file mode 100644
+index 0000000..f8b11d7
+--- /dev/null
++++ b/libutf_modified/Make.FreeBSD-x86_64
+@@ -0,0 +1,6 @@
++CC=clang
++CFLAGS+=-Wall -Wno-missing-braces -Wno-parentheses -Wno-switch -O2 -g -c -I. -I$(PREFIX)/include
++O=o
++AR=ar
++ARFLAGS=rvc
++NAN=nan64.$O
+diff --git a/libutf/Make.Linux-x86_64 b/libutf_modified/Make.Linux-x86_64
+index 1fadb5f..7a8f191 100644
+--- a/libutf/Make.Linux-x86_64
++++ b/libutf_modified/Make.Linux-x86_64
+@@ -2,5 +2,5 @@ CC=gcc
+ CFLAGS+=-Wall -Wno-missing-braces -Wno-parentheses -Wno-switch -fPIC -O2 -g -c -I.
+ O=o
+ AR=ar
+-ARFLAGS=rvc
++ARFLAGS=rc
+ NAN=nan64.$O
+diff --git a/libutf/Makefile b/libutf_modified/Makefile
+index 343ce19..91cd91f 100644
+--- a/libutf/Makefile
++++ b/libutf_modified/Makefile
+@@ -5,7 +5,7 @@ OBJTYPE:=${shell uname -m | sed 's;i.86;386;; s;/.*;;; s; ;;g'}
+ 
+ # this works in bsd make
+ SYSNAME!=uname
+-OBJTYPE!=uname -m | sed 's;i.86;386;; s;amd64;x864_64;; s;/.*;;; s; ;;g'
++OBJTYPE!=uname -m | sed 's;i.86;386;; s;amd64;x86_64;; s;/.*;;; s; ;;g'
+ 
+ # the gnu rules will mess up bsd but not vice versa,
+ # hence the gnu rules come first.
+diff --git a/libutf/rune.c b/libutf_modified/rune.c
+index f594480..d8dbc4c 100644
+--- a/libutf/rune.c
++++ b/libutf_modified/rune.c
+@@ -44,7 +44,7 @@ enum
+ };
+ 
+ int
+-chartorune(Rune *rune, char *str)
++chartorune(Rune *rune, const char *str)
+ {
+ 	int c, c1, c2, c3;
+ 	long l;
+@@ -200,7 +200,7 @@ runenlen(Rune *r, int nrune)
+ }
+ 
+ int
+-fullrune(char *str, int n)
++fullrune(const char *str, int n)
+ {
+ 	int c;
+ 
+diff --git a/libutf/utf.h b/libutf_modified/utf.h
+index 44052f4..4186ca6 100644
+--- a/libutf/utf.h
++++ b/libutf_modified/utf.h
+@@ -16,8 +16,8 @@ enum
+ };
+ 
+ /* Edit .+1,/^$/ | cfn $PLAN9/src/lib9/utf/?*.c | grep -v static |grep -v __ */
+-int		chartorune(Rune *rune, char *str);
+-int		fullrune(char *str, int n);
++int		chartorune(Rune *rune, const char *str);
++int		fullrune(const char *str, int n);
+ int		isalpharune(Rune c);
+ int		islowerrune(Rune c);
+ int		isspacerune(Rune c);
+diff --git a/libutf/utfecpy.c b/libutf_modified/utfecpy.c
+index cf3535f..be22943 100644
+--- a/libutf/utfecpy.c
++++ b/libutf_modified/utfecpy.c
+@@ -11,7 +11,8 @@
+  * ANY REPRESENTATION OR WARRANTY OF ANY KIND CONCERNING THE MERCHANTABILITY
+  * OF THIS SOFTWARE OR ITS FITNESS FOR ANY PARTICULAR PURPOSE.
+  */
+-#define _BSD_SOURCE 1	/* memccpy */
++#define _DEFAULT_SOURCE 1	/* memccpy */
++#define _BSD_SOURCE 1		/* memccpy */
+ #include <stdarg.h>
+ #include <string.h>
+ #include "plan9.h"
