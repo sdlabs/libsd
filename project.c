@@ -60,7 +60,7 @@ sd_project_open(const char *path, int *err)
 	}
 	sd_project_ref(p);
 
-	p->dir_path = dir;
+	p->dir_path = strdup(dir);
 
 	slice_make(&p->files, 0, INITIAL_CAP);
 	if (!p->files.elems) {
@@ -82,6 +82,7 @@ sd_project_open(const char *path, int *err)
 	return p;
 
 error:
+	free(dir_str);
 	if (f)
 		fclose(f);
 	sd_project_unref(p);
