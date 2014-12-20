@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmile version="1.0" level="3" xmlns="http://www.systemdynamics.org/XMILE" xmlns:isee="http://iseesystems.com/XMILE">
+    <header>
+        <smile version="1.0" namespace="std, isee"/>
+        <name>speed</name>
+        <uuid>3152f4c6-db2c-43a4-844d-b4c3b4afa057</uuid>
+        <vendor>SDLabs</vendor>
+        <product version="0.1.0" lang="en">libsd</product>
+    </header>
+    <sim_specs method="Euler" time_units="Time">
+        <start>0</start>
+        <stop>1000000</stop>
+        <dt>1</dt>
+        <savestep>100000</savestep>
+    </sim_specs>
+    <model>
+	<variables>
+            <stock name="stock">
+		<eqn>(initial)+1-1</eqn>
+		<inflow>input</inflow>
+            </stock>
+            <flow name="input">
+		<eqn>1</eqn>
+            </flow>
+            <aux name="initial">
+		<eqn>2</eqn>
+            </aux>
+	</variables>
+    </model>
+</xmile>

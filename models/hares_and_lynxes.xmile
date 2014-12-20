@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<xmile version="1.0" level="3" xmlns="http://www.systemdynamics.org/XMILE" xmlns:isee="http://iseesystems.com/XMILE">
+	<header>
+		<smile version="1.0" namespace="std, isee">
+			<uses_submodels />
+		</smile>
+		å    <name />
+		<uuid>5c1276e0-9bab-4489-b31c-a1e5dfc3a410</uuid>
+		<vendor>SDLabs</vendor>
+		å<product version="0.1.0" lang="en">libsd</product>
+	</header>
+	<style>
+		<model font-family="Arial" font-size="9pt">
+			<color>blue</color>
+			<background>white</background>
+			<font-style>normal</font-style>
+			<font-weight>normal</font-weight>
+			<text-decoration>none</text-decoration>
+			<text-align>center</text-align>
+			<text-background>white</text-background>
+			<font-color>blue</font-color>
+			<padding>2</padding>
+			<border-color>black</border-color>
+			<border-width>1</border-width>
+			<border-style>none</border-style>
+		</model>
+		<stock label_side="top">
+			<label_angle>0</label_angle>
+			<size>medium</size>
+		</stock>
+		<flow label_side="bottom">
+			<label_angle>0</label_angle>
+		</flow>
+		<module>
+			<label_side>center</label_side>
+			<label_angle>0</label_angle>
+			<size>medium</size>
+		</module>
+		<aux label_side="bottom">
+			<label_angle>0</label_angle>
+			<size>medium</size>
+		</aux>
+		<connector color="#FF007F" />
+		<text_box text-align="left">
+			<font-color>black</font-color>
+		</text_box>
+	</style>
+	<sim_specs method="Euler" time_units="time">
+		<start>1</start>
+		<stop>12</stop>
+		<dt>0.5</dt>
+	</sim_specs>
+	<model_units />
+	<model>
+	    <variables>
+		<module name="hares">
+			<connect to="area" from=".area" />
+			<connect to="lynxes" from="lynxes.lynxes" />
+		</module>
+		<module name="lynxes">
+			<connect to="size_of_one&#x0A;time_lynx_harvest" from=".size_of_one_time_lynx_harvest" />
+			<connect to="hare_density" from="hares.hare_density" />
+		</module>
+		<aux name="area" access="output">
+			<eqn>1000 </eqn>
+		</aux>
+		<aux name="size_of_one\ntime_lynx_harvest" access="output">
+			<eqn>100 </eqn>
+		</aux>
+	    </variables>
+	</model>
+	<model name="hares">
+	    <variables>
+		<stock name="hares">
+			<eqn>50000 </eqn>
+			<inflow>births</inflow>
+			<outflow>deaths</outflow>
+			<non_negative />
+		</stock>
+		<flow name="births">
+			<eqn>hares * birth_fraction </eqn>
+			<non_negative />
+		</flow>
+		<flow name="deaths">
+			<eqn>lynxes * hares_killed_per_lynx </eqn>
+			<non_negative />
+		</flow>
+		<aux name="birth_fraction">
+			<eqn>1.25 </eqn>
+		</aux>
+		<aux name="area" access="input">
+			<eqn>{Enter equation for use when not hooked up to other models}</eqn>
+		</aux>
+		<aux name="hare_density" access="output">
+			<eqn>hares / area </eqn>
+		</aux>
+		<stock name="lynxes" access="input">
+			<eqn>{Enter equation for use when not hooked up to other models}</eqn>
+			<non_negative />
+		</stock>
+		<aux name="hares_killed\nper_lynx">
+			<eqn>hare_density </eqn>
+			<gf>
+				<yscale min="0" max="500" />
+				<xpts>0,50,100,150.00000000000003,200,250,300.00000000000006,350.00000000000006,400,450,500</xpts>
+				<ypts>0,50,100,150.00000000000003,200,250,300.00000000000006,350.00000000000006,400,450,500</ypts>
+			</gf>
+		</aux>
+	    </variables>
+	</model>
+	<model name="lynxes">
+	    <variables>
+		<stock name="lynxes" access="output">
+			<eqn>1250 </eqn>
+			<inflow>births</inflow>
+			<outflow>deaths</outflow>
+			<outflow>harvest</outflow>
+			<non_negative />
+		</stock>
+		<flow name="births">
+			<eqn>lynxes * birth_fraction </eqn>
+			<non_negative />
+		</flow>
+		<flow name="deaths">
+			<eqn>death_fraction * lynxes </eqn>
+			<non_negative />
+		</flow>
+		<aux name="hare_density" access="input">
+			<eqn>{Enter equation for use when not hooked up to other models}</eqn>
+		</aux>
+		<aux name="birth_fraction">
+			<eqn>.25 </eqn>
+		</aux>
+		<aux name="death_fraction">
+			<eqn>hare_density </eqn>
+			<gf>
+				<yscale min="0" max="1" />
+				<xpts>0,10,20,30.000000000000004,40,50,60.000000000000007,70,80,90,100</xpts>
+				<ypts>1,0.60653065971263342,0.36787944117144233,0.22313016014842979,0.1353352832366127,0.0820849986238988,0.049787068367863924,0.030197383422318487,0.018315638888734179,0.011108996538242306,0.006737946999085467</ypts>
+			</gf>
+		</aux>
+		<flow name="harvest">
+			<eqn>PULSE( size_of_one_time_lynx_harvest , 4 , 0 ) </eqn>
+			<non_negative />
+		</flow>
+		<aux name="size_of_one\ntime_lynx_harvest" access="input">
+			<eqn>{Enter equation for use when not hooked up to other models}</eqn>
+		</aux>
+	    </variables>
+	</model>
+</xmile>
