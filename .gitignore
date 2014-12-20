@@ -2,6 +2,7 @@
 /config.h
 /libsd.a
 /mdl
+/mdl.exe
 *.o
 *.test
 *.lo
