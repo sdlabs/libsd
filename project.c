@@ -37,7 +37,6 @@ static const char *SD_ERROR_MSGS[] = {
 SDProject *
 sd_project_open(const char *path, int *err)
 {
-	int dirfd = -1;
 	FILE *f = NULL;
 	char *dir, *dir_str;
 	SDProject *p = NULL;
@@ -45,14 +44,6 @@ sd_project_open(const char *path, int *err)
 
 	dir_str = strdup(path);
 	dir = dirname(dir_str);
-
-	dirfd = open(dir, O_RDONLY);
-	if (dirfd == -1) {
-		if (err)
-			*err = SD_ERR_BAD_FILE;
-		goto error;
-	}
-	// FIXME: check not dir
 
 	f = fopen(path, "r");
 	if (!f) {
@@ -67,8 +58,9 @@ sd_project_open(const char *path, int *err)
 			*err = SD_ERR_NOMEM;
 		goto error;
 	}
-	p->dirfd = dirfd;
 	sd_project_ref(p);
+
+	p->dir_path = dir_str;
 
 	slice_make(&p->files, 0, INITIAL_CAP);
 	if (!p->files.elems) {
@@ -90,9 +82,6 @@ sd_project_open(const char *path, int *err)
 	return p;
 
 error:
-	if (dirfd > -1)
-		close(dirfd);
-	free(dir_str);
 	if (f)
 		fclose(f);
 	sd_project_unref(p);
@@ -111,8 +100,7 @@ sd_project_unref(SDProject *p)
 	if (!p)
 		return;
 	if (__sync_sub_and_fetch(&p->refcount, 1) == 0) {
-		if (p->dirfd > -1)
-			close(p->dirfd);
+		free(p->dir_path);
 		for (size_t i = 0; i < p->files.len; ++i)
 			file_free(p->files.elems[i]);
 		free(p->files.elems);

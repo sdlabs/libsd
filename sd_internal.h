@@ -111,7 +111,7 @@ typedef struct {
 } Var;
 
 struct SDProject_s {
-	int dirfd;
+	char *dir_path;
 	Slice files;
 	int refcount;
 };
