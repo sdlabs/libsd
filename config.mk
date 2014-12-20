@@ -1,6 +1,6 @@
 VERSION = 0.1.0
 
-PREFIX=/usr/local
+PREFIX = /usr/local
 
 WARNFLAGS := -pedantic -Wvariadic-macros \
              -Wformat -Wall -Wextra -Wundef -Wpointer-arith \

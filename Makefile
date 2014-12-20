@@ -43,6 +43,11 @@ expat/.libs/libexpat.a: expat/Makefile
 libutf/libutf.a:
 	${MAKE} -C libutf
 
+install: ${LIB} ${EXE}
+	install -c -m 0644 sd.h ${PREFIX}/include/sd.h
+	install -c -m 0644 ${LIB} ${PREFIX}/lib/${LIB}
+	install -c -m 0755 ${EXE} ${PREFIX}/bin/${EXE}
+
 check: ${TESTS}
 	${LCOV} --directory . --zerocounters 2>/dev/null
 	./${TESTS}
@@ -59,4 +64,4 @@ clean:
 	${MAKE} -C libutf clean
 	${MAKE} -C expat clean
 
-.PHONY: all clean check coverage
+.PHONY: all clean check coverage install
