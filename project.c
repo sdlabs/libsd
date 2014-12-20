@@ -60,7 +60,7 @@ sd_project_open(const char *path, int *err)
 	}
 	sd_project_ref(p);
 
-	p->dir_path = dir_str;
+	p->dir_path = dir;
 
 	slice_make(&p->files, 0, INITIAL_CAP);
 	if (!p->files.elems) {
