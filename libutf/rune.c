@@ -53,7 +53,7 @@ chartorune(Rune *rune, const char *str)
 	 * one character sequence
 	 *	00000-0007F => T1
 	 */
-	c = *(uchar*)str;
+	c = *(const uchar*)str;
 	if(c < Tx) {
 		*rune = c;
 		return 1;
@@ -63,7 +63,7 @@ chartorune(Rune *rune, const char *str)
 	 * two character sequence
 	 *	0080-07FF => T2 Tx
 	 */
-	c1 = *(uchar*)(str+1) ^ Tx;
+	c1 = *(const uchar*)(str+1) ^ Tx;
 	if(c1 & Testx)
 		goto bad;
 	if(c < T3) {
@@ -80,7 +80,7 @@ chartorune(Rune *rune, const char *str)
 	 * three character sequence
 	 *	0800-FFFF => T3 Tx Tx
 	 */
-	c2 = *(uchar*)(str+2) ^ Tx;
+	c2 = *(const uchar*)(str+2) ^ Tx;
 	if(c2 & Testx)
 		goto bad;
 	if(c < T4) {
@@ -96,7 +96,7 @@ chartorune(Rune *rune, const char *str)
 	 *	10000-10FFFF => T4 Tx Tx Tx
 	 */
 	if(UTFmax >= 4) {
-		c3 = *(uchar*)(str+3) ^ Tx;
+		c3 = *(const uchar*)(str+3) ^ Tx;
 		if(c3 & Testx)
 			goto bad;
 		if(c < T5) {
@@ -206,7 +206,7 @@ fullrune(const char *str, int n)
 
 	if(n <= 0)
 		return 0;
-	c = *(uchar*)str;
+	c = *(const uchar*)str;
 	if(c < Tx)
 		return 1;
 	if(c < T3)
