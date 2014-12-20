@@ -3,15 +3,51 @@ libsd - System Dynamics for developers
 
 A modern, high-performance, open source system dynamics engine written
 in C, designed for embedding in larger projects.  It has been tested
-to build & run on Linux, FreeBSD and Mac OS X.  Patches are welcome
-for Windows support, but its not something I'm focused on right now.
+to build & run on Linux, FreeBSD, Mac OS X, and Windows (under mingw).
+Patches are welcome for Visual Studio support.
 
 
-Clean, Simple API
------------------
+Getting & Building the code
+---------------------------
 
-Running a model and retreiving the time-series results for a variable
-is straightforward:
+The build process is easy:
+
+```
+git clone git@github.com:sdlabs/libsd.git
+cd libsd
+make
+sudo make install
+```
+
+That will install the static library `libsd`, the header `sd.h`, and
+the command-line simulation tool `mdl`.  Run mdl to simulate a model
+and provide the results in a tab-separated output format:
+
+```
+[bpowers@freebsd11 libsd]$ mdl models/one_stock.xmile
+time	stock	input	initial
+0.000000	2.000000	1.000000	2.000000
+100000.000000	100002.000000	1.000000	2.000000
+200000.000000	200002.000000	1.000000	2.000000
+300000.000000	300002.000000	1.000000	2.000000
+400000.000000	400002.000000	1.000000	2.000000
+500000.000000	500002.000000	1.000000	2.000000
+600000.000000	600002.000000	1.000000	2.000000
+700000.000000	700002.000000	1.000000	2.000000
+800000.000000	800002.000000	1.000000	2.000000
+900000.000000	900002.000000	1.000000	2.000000
+1000000.000000	1000002.000000	1.000000	2.000000
+```
+
+Using libsd
+-----------
+
+Simply `#include <sd.h>` in your project, and link with `-lsd
+-lm`. (`-lm` is the math library provided by libc, and is explicitly
+required on most platforms).
+
+Code for opening a model, simulating it, and retreiving the
+time-series results for a variable is straightforward:
 
 ```C
 SDProject *project;
