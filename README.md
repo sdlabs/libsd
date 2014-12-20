@@ -13,10 +13,10 @@ Getting & Building the code
 The build process is easy:
 
 ```
-git clone git@github.com:sdlabs/libsd.git
-cd libsd
-make
-sudo make install
+$ git clone git@github.com:sdlabs/libsd.git
+$ cd libsd
+$ make
+$ sudo make install
 ```
 
 That will install the static library `libsd`, the header `sd.h`, and
