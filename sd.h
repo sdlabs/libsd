@@ -29,7 +29,6 @@ typedef enum {
 
 typedef struct SDProject_s SDProject;
 typedef struct SDSim_s SDSim;
-typedef struct SDModel_s SDModel;
 
 /// sd_error_str returns a string representation describing one of the
 /// errors enumerated above.  The returned string must not be freed or
@@ -45,10 +44,6 @@ const char *sd_error_str(int err);
 SDProject *sd_project_open(const char *path, int *err);
 void sd_project_ref(SDProject *project);
 void sd_project_unref(SDProject *project);
-
-SDModel *sd_project_get_model(SDProject *project, const char *model_name);
-void sd_model_ref(SDModel *m);
-void sd_model_unref(SDModel *m);
 
 /// sd_sim_new creates a new simulation context for the named model.
 /// If model_name is NULL, the context is created for the default/root

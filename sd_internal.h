@@ -48,10 +48,12 @@ typedef enum {
 	TOK_NUMBER   = 1<<4,
 } TokenType;
 
+
 typedef struct File_s File;
+typedef struct SDModel_s SDModel;
 typedef struct AModel_s AModel;
-typedef struct Node_s Node;
 typedef struct AVar_s AVar;
+typedef struct Node_s Node;
 typedef struct WalkerOps_s WalkerOps;
 
 
@@ -248,6 +250,10 @@ int project_parse_file(SDProject *p, FILE *f);
 int project_add_file(SDProject *p, File *f);
 
 int module_get_referenced_models(Var *v, Slice *result);
+
+SDModel *sd_project_get_model(SDProject *project, const char *model_name);
+void sd_model_ref(SDModel *m);
+void sd_model_unref(SDModel *m);
 
 void var_free(Var *v);
 
