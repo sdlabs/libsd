@@ -6,6 +6,10 @@ in C, designed for embedding in larger projects.  It has been tested
 to build & run on Linux, FreeBSD, Mac OS X, and Windows (under mingw).
 Patches are welcome for Visual Studio support.
 
+libsd relies heavily on unit testing. A recent code coverage report of
+the unit tests is [here](https://bpowers.github.io/coverage/libsd/)
+with >93% line coverage.
+
 
 Getting & Building the code
 ---------------------------
