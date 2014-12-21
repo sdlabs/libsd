@@ -204,8 +204,9 @@ test_hares_and_lynxes(void)
 void
 test_predator_prey(void)
 {
-	int err;
 	SDProject *p;
+	int err;
+	double v;
 
 	err = 0;
 	p = sd_project_open("models/predator_prey.xmile", &err);
@@ -245,6 +246,18 @@ test_predator_prey(void)
 	if (conditions_checked != 2)
 		die("only %d conditions checked\n", conditions_checked);
 
+	SDSim *s = sd_sim_new(p, NULL);
+	if (!s)
+		die("pred_prey sim_new failed\n");
+
+	if ((err = sd_sim_run_to_end(s)))
+		die("run_to_end failed: %d\n", err);
+
+	err = sd_sim_get_value(s, "hares", &v);
+	if (err || v != 50000)
+		die("hares value %f not 1\n", v);
+
+	sd_sim_unref(s);
 	sd_project_unref(p);
 	p = NULL;
 }
