@@ -13,7 +13,7 @@
 
 typedef struct {
 	Walker w;
-	AModel *am;
+	AVar *module;
 	AVar *av;
 	Node *curr;
 } AVarWalker;
@@ -28,7 +28,7 @@ static void calc_stocks(SDSim *s, double *data, Slice *l);
 
 static double svisit(SDSim *s, Node *n);
 
-static AVarWalker *avar_walker_new(AModel *am, AVar *av);
+static AVarWalker *avar_walker_new(AVar *module, AVar *av);
 static void avar_walker_ref(void *data);
 static void avar_walker_unref(void *data);
 static void avar_walker_start(void *data, Node *n);
@@ -73,7 +73,7 @@ error:
 }
 
 AVarWalker *
-avar_walker_new(AModel *am, AVar *av)
+avar_walker_new(AVar *module, AVar *av)
 {
 	AVarWalker *w = calloc(1, sizeof(*w));
 
@@ -83,7 +83,7 @@ avar_walker_new(AModel *am, AVar *av)
 	w->w.ops = &AVAR_WALKER_OPS;
 	avar_walker_ref(w);
 	w->av = av;
-	w->am = am;
+	w->module = module;
 
 	return w;
 }
@@ -114,7 +114,7 @@ avar_walker_start(void *data, Node *n)
 
 	switch (n->type) {
 	case N_IDENT:
-		dep = resolve(vw->am, n->sval);
+		dep = resolve(vw->module, n->sval);
 		if (!dep) {
 			printf("resolve failed for %s\n", n->sval);
 			// TODO: error
@@ -146,14 +146,18 @@ avar_walker_end_child(void *data, Node *n)
 }
 
 int
-avar_init(AVar *av, AModel *am)
+avar_init(AVar *av, AVar *module)
 {
 	AVarWalker *w;
 	bool ok;
 
-	// XXX: what to do for modules?
+	// is amodule if we have a model pointer
+	if (av->model) {
+		module_compile(av, 1);
+		return 0;
+	}
 
-	w = avar_walker_new(am, av);
+	w = avar_walker_new(module, av);
 
 	ok = node_walk(&w->w, av->node);
 	if (!ok)
@@ -161,14 +165,14 @@ avar_init(AVar *av, AModel *am)
 
 	for (size_t i = 0; i < av->v->inflows.len; i++) {
 		char *in_name = av->v->inflows.elems[i];
-		AVar *in = resolve(am, in_name);
+		AVar *in = resolve(module, in_name);
 		if (!in)
 			goto error;
 		slice_append(&av->inflows, in);
 	}
 	for (size_t i = 0; i < av->v->outflows.len; i++) {
 		char *out_name = av->v->outflows.elems[i];
-		AVar *out = resolve(am, out_name);
+		AVar *out = resolve(module, out_name);
 		if (!out)
 			goto error;
 		slice_append(&av->outflows, out);
@@ -178,6 +182,7 @@ avar_init(AVar *av, AModel *am)
 
 	return SD_ERR_NO_ERROR;
 error:
+	printf("error for %s\n", av->v->name);
 	avar_walker_unref(w);
 	return SD_ERR_UNSPECIFIED;
 }
@@ -188,78 +193,57 @@ avar_free(AVar *av)
 	if (!av)
 		return;
 
+	sd_model_unref(av->model);
+	for (size_t i = 0; i < av->avars.len; i++) {
+		AVar *child = av->avars.elems[i];
+		avar_free(child);
+	}
+	free(av->avars.elems);
 	free(av->src);
 	node_free(av->node);
 	free(av->direct_deps.elems);
 	free(av->all_deps.elems);
 	free(av->inflows.elems);
 	free(av->outflows.elems);
+	free(av->initials.elems);
+	free(av->flows.elems);
+	free(av->stocks.elems);
 	free(av);
 }
 
-AModel *
-amodel(SDModel *m)
+AVar *
+module(SDModel *m)
 {
-	AModel *am = NULL;
+	AVar *module;
 
-	am = calloc(1, sizeof(*am));
-	if (!am)
+	module = calloc(1, sizeof(*module));
+	if (!module)
 		goto error;
-	am->model = m;
+	module->model = m;
 
 	for (size_t i = 0; i < m->vars.len; i++) {
 		AVar *av = avar(m->vars.elems[i]);
 		if (!av)
 			goto error;
-		slice_append(&am->avars, av);
-
-		if (av->v->type == VAR_STOCK) {
-			slice_append(&am->initials, av);
-			slice_append(&am->stocks, av);
-		} else {
-			slice_append(&am->initials, av);
-			if (av->is_const)
-				slice_append(&am->stocks, av);
-			else
-				slice_append(&am->flows, av);
-		}
+		slice_append(&module->avars, av);
 	}
 
-	return am;
+	return module;
 error:
-	free(am);
+	avar_free(module);
 	return NULL;
 }
 
 AVar *
-resolve(AModel *am, const char *name)
+resolve(AVar *module, const char *name)
 {
-	for (size_t i = 0; i < am->avars.len; i++) {
-		AVar *av = am->avars.elems[i];
+	for (size_t i = 0; i < module->avars.len; i++) {
+		AVar *av = module->avars.elems[i];
 		if (strcmp(av->v->name, name) == 0)
 			return av;
 	}
 
 	return NULL;
-}
-
-void
-amodel_free(AModel *am)
-{
-	if (!am)
-		return;
-
-	for (size_t i = 0; i < am->avars.len; i++) {
-		AVar *av = am->avars.elems[i];
-		avar_free(av);
-	}
-	free(am->avars.elems);
-	free(am->initials.elems);
-	free(am->flows.elems);
-	free(am->stocks.elems);
-	// we don't own any modules, just reference them.
-	free(am->modules.elems);
-	free(am);
 }
 
 int
@@ -293,33 +277,45 @@ cmp_avar(const void *a_in, const void *b_in)
 }
 
 int
-amodel_compile(AModel *am, int offset)
+module_compile(AVar *module, int offset)
 {
 	AVar *av;
-	int err;
+	int err, failed;
 
-	for (size_t i = 0; i < am->avars.len; i++) {
-		av = am->avars.elems[i];
-		err = avar_init(av, am);
+	failed = 0;
+	for (size_t i = 0; i < module->avars.len; i++) {
+		av = module->avars.elems[i];
+		err = avar_init(av, module);
 		if (err)
-			return err;
+			failed++;
 	}
+	if (failed)
+		return SD_ERR_UNSPECIFIED;
 
 	// TODO: do init on demand from all_deps, so we don't need two
 	// iterations.  Maybe.  this keeps this pretty simple as is.
-	for (size_t i = 0; i < am->avars.len; i++) {
-		av = am->avars.elems[i];
+	for (size_t i = 0; i < module->avars.len; i++) {
+		av = module->avars.elems[i];
 		av->offset = offset + i;
 		err = avar_all_deps(av, NULL);
 		if (err)
 			return err;
 	}
 
-	// at this point each model knows its dependencies.  we can
-	// sort the 3 run lists.
-	qsort(am->initials.elems, am->initials.len, sizeof(AModel*), cmp_avar);
-	qsort(am->flows.elems, am->flows.len, sizeof(AModel*), cmp_avar);
-	qsort(am->stocks.elems, am->stocks.len, sizeof(AModel*), cmp_avar);
+	for (size_t i = 0; i < module->avars.len; i++) {
+		AVar *sub = module->avars.elems[i];
+		if (sub->v->type == VAR_STOCK) {
+			slice_append(&module->initials, sub);
+			slice_append(&module->stocks, sub);
+		} else {
+			slice_append(&module->initials, sub);
+			if (sub->is_const)
+				slice_append(&module->stocks, sub);
+			else
+				slice_append(&module->flows, sub);
+		}
+	}
+
 
 	// compile each model (_prepare)
 	// - isRef?
@@ -347,102 +343,48 @@ avar_all_deps(AVar *av, Slice *all)
 	return SD_ERR_NO_ERROR;
 }
 
-int
-module_get_referenced_models(Var *v, Slice *result)
-{
-	SDModel *m;
-	AModel *am;
-	int err;
-
-	if (!v || v->type != VAR_MODULE)
-		return SD_ERR_UNSPECIFIED;
-
-	m = v->model;
-
-	// if this module's model is already in the result set, add
-	// our unique module var to the list of modules.
-	for (size_t i = 0; i < result->len; i++) {
-		am = result->elems[i];
-		if (am->model == m) {
-			slice_append(&am->modules, v);
-			return SD_ERR_NO_ERROR;
-		}
-	}
-
-	// otherwise create a new avar, add us, and add all
-	// submodules.
-	am = amodel(m);
-	if (!am)
-		return SD_ERR_NOMEM;
-
-	err = slice_append(&am->modules, v);
-	if (err)
-		return err;
-
-	err = slice_append(result, am);
-	if (err)
-		return err;
-
-	for (size_t i = 0; i < m->modules.len; i++) {
-		Var *submodule = m->modules.elems[i];
-		if (!submodule->model)
-			submodule->model = sd_project_get_model(m->file->project, submodule->name);
-		err = module_get_referenced_models(submodule, result);
-		if (err)
-			return err;
-	}
-
-	return SD_ERR_NO_ERROR;
-}
-
 SDSim *
 sd_sim_new(SDProject *p, const char *model_name)
 {
-	SDSim *sim = calloc(1, sizeof(*sim));
-	Var *module = calloc(1, sizeof(*module));
+	SDSim *sim;
+	SDModel *model;
 	int err;
-	size_t nvars = 1; // time is offset 0
 
-	if (!sim || !module)
+	model = NULL;
+	sim = calloc(1, sizeof(*sim));
+	if (!sim)
+		goto error;
+	sd_sim_ref(sim);
+
+	// FIXME: check refcounting
+	model = sd_project_get_model(p, model_name);
+	if (!model)
+		goto error;
+
+	sim->module = module(model);
+	if (!sim->module)
 		goto error;
 
 	sd_project_ref(p);
 	sim->project = p;
-	sd_sim_ref(sim);
 
-	// create a module corresponding to the model we wish to
-	// simulate.
-	module->type = VAR_MODULE;
-	if (model_name)
-		module->name = strdup(model_name);
-	module->model = sd_project_get_model(p, model_name);
-	if (!module->model)
-		goto error;
-
-	sim->module = module;
-	module = NULL;
-
-	err = module_get_referenced_models(sim->module, &sim->amodels);
+	err = avar_init(sim->module, NULL);
 	if (err)
 		goto error;
 
-	for (size_t i = 0; i < sim->amodels.len; i++) {
-		AModel *am = sim->amodels.elems[i];
-		err = amodel_compile(am, nvars);
-		if (err)
-			goto error;
-		// FIXME: this isn't right for modules
-		nvars += am->avars.len;
-	}
+	// at this point each model knows its dependencies.  we can
+	// sort the 3 run lists.
+	qsort(sim->module->initials.elems, sim->module->initials.len, sizeof(AVar *), cmp_avar);
+	qsort(sim->module->flows.elems, sim->module->flows.len, sizeof(AVar *), cmp_avar);
+	qsort(sim->module->stocks.elems, sim->module->stocks.len, sizeof(AVar *), cmp_avar);
 
-	sim->nvars = nvars;
+	sim->nvars = 1 + sim->module->avars.len;
 	err = sd_sim_reset(sim);
 	if (err)
 		goto error;
 
 	return sim;
 error:
-	var_free(module);
 	sd_sim_unref(sim);
 	return NULL;
 }
@@ -476,8 +418,7 @@ sd_sim_reset(SDSim *s)
 
 	s->curr[TIME] = s->spec.start;
 
-	AModel *root = s->amodels.elems[0];
-	calc(s, s->curr, &root->initials);
+	calc(s, s->curr, &s->module->initials);
 error:
 	return err;
 }
@@ -535,20 +476,18 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 int
 sd_sim_run_to(SDSim *s, double end)
 {
-	AModel *root;
 	double dt;
 
 	if (!s)
 		return -1;
 
-	root = s->amodels.elems[0];
 	dt = s->spec.dt;
 	s->curr = sim_curr(s);
 	s->next = sim_next(s);
 
 	while (s->step < s->nsteps && s->curr[TIME] <= end) {
-		calc(s, s->curr, &root->flows);
-		calc_stocks(s, s->next, &root->stocks);
+		calc(s, s->curr, &s->module->flows);
+		calc_stocks(s, s->next, &s->module->stocks);
 
 		if (s->step + 1 == s->nsteps)
 			break;
@@ -610,7 +549,7 @@ sd_sim_get_value(SDSim *s, const char *name, double *result)
 		return 0;
 	}
 
-	av = resolve(s->amodels.elems[0], name);
+	av = resolve(s->module, name);
 	if (!av)
 		return SD_ERR_UNSPECIFIED;
 
@@ -624,12 +563,7 @@ sd_sim_unref(SDSim *sim)
 	if (!sim)
 		return;
 	if (__sync_sub_and_fetch(&sim->refcount, 1) == 0) {
-		var_free(sim->module);
-		for (size_t i = 0; i < sim->amodels.len; i++) {
-			AModel *am = sim->amodels.elems[i];
-			amodel_free(am);
-		}
-		free(sim->amodels.elems);
+		avar_free(sim->module);
 		sd_project_unref(sim->project);
 		free(sim->slab);
 		free(sim);
@@ -713,7 +647,9 @@ sd_sim_get_varcount(SDSim *sim)
 int
 sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
 {
-	size_t i = 0;
+	size_t i;
+
+	i = 0;
 
 	if (!sim || !result)
 		return -1;
@@ -723,9 +659,8 @@ sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
 	result[i] = "time";
 
 	// FIXME: revise for modules case
-	AModel *am = sim->amodels.elems[0];
-	for (i = 0; i < am->avars.len && i+1 < max; i++) {
-		AVar *av = am->avars.elems[i];
+	for (i = 0; i < sim->module->avars.len && i+1 < max; i++) {
+		AVar *av = sim->module->avars.elems[i];
 		result[i+1] = av->v->name;
 	}
 	return (int)i+1;
@@ -743,7 +678,7 @@ sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)
 	if (strcmp(name, "time") == 0) {
 		off = 0;
 	} else {
-		AVar *av = resolve(s->amodels.elems[0], name);
+		AVar *av = resolve(s->module, name);
 		if (!av)
 			return -1;
 		off = av->offset;

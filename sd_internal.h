@@ -51,7 +51,6 @@ typedef enum {
 
 typedef struct File_s File;
 typedef struct SDModel_s SDModel;
-typedef struct AModel_s AModel;
 typedef struct AVar_s AVar;
 typedef struct Node_s Node;
 typedef struct WalkerOps_s WalkerOps;
@@ -141,28 +140,36 @@ struct AVar_s {
 	Var *v;
 	char *src;
 	Node *node;
+	// dependencies are defined as other AVars that must be
+	// simulated before this one in the current simulation phase.
+	// For example, an outflow that references a rate auxiliary
+	// and a stock in its equation would only list the rate as its
+	// direct dependency, because the stock's value is calculated
+	// in a prior simulation phase.
 	Slice direct_deps;
 	Slice all_deps;
-	Slice inflows;
-	Slice outflows;
-	int offset;
 	bool have_all_deps;
 	bool is_const;
-};
 
-// annotated model
-struct AModel_s {
+	// only stocks have inflows + outflows
+	Slice inflows;
+	Slice outflows;
+
+	// The model refers to this module's model.  initials, flows &
+	// stocks are also for modules.
 	SDModel *model;
 	Slice modules; // modules of this type
-	Slice avars;
 	Slice initials;
 	Slice flows;
 	Slice stocks;
+	Slice avars;
+
+	int offset;
 };
 
 struct SDSim_s {
 	SDProject *project;
-	Var *module;
+	AVar *module;
 	SimSpec spec;
 	double *slab;
 	double *curr;
@@ -173,7 +180,6 @@ struct SDSim_s {
 	size_t step;
 	size_t save_step;
 	size_t save_every;
-	Slice amodels;
 	int refcount;
 };
 
@@ -272,17 +278,16 @@ Node *node(NodeType ty);
 void node_free(Node *n);
 bool node_walk(Walker *w, Node *n);
 
-AModel *amodel(SDModel *m);
-void amodel_free(AModel *am);
-int amodel_compile(AModel *am, int offset);
+AVar *module(SDModel *m);
+int module_compile(AVar *av, int offset);
 
 AVar *avar(Var *v);
 void avar_free(AVar *av);
-int avar_init(AVar *av, AModel *am); // called after all avars have been created
+int avar_init(AVar *av, AVar *module); // called after all avars have been created
 int avar_eqn_parse(AVar *av);
 int avar_all_deps(AVar *av, Slice *all);
 
-AVar *resolve(AModel *am, const char *name);
+AVar *resolve(AVar *module, const char *name);
 
 double lookup(Table *t, double index);
 
