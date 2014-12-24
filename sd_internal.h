@@ -278,10 +278,10 @@ Node *node(NodeType ty);
 void node_free(Node *n);
 bool node_walk(Walker *w, Node *n);
 
-AVar *module(SDModel *m);
+AVar *module(SDProject *p, SDModel *m);
 int module_compile(AVar *av, int offset);
 
-AVar *avar(Var *v);
+AVar *avar(SDProject *p, Var *v);
 void avar_free(AVar *av);
 int avar_init(AVar *av, AVar *module); // called after all avars have been created
 int avar_eqn_parse(AVar *av);

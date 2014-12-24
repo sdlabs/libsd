@@ -46,10 +46,23 @@ static const WalkerOps AVAR_WALKER_OPS = {
 
 
 AVar *
-avar(Var *v)
+avar(SDProject *p, Var *v)
 {
-	AVar *av = NULL;
+	SDModel *model;
+	AVar *av;
 	int err;
+
+	av = NULL;
+
+	if (v->type == VAR_MODULE) {
+		model = sd_project_get_model(p, v->name);
+		if (!model)
+			goto error;
+		av = module(p, model);
+		if (av)
+			av->v = v;
+		return av;
+	}
 
 	av = calloc(1, sizeof(*av));
 	if (!av)
@@ -212,7 +225,7 @@ avar_free(AVar *av)
 }
 
 AVar *
-module(SDModel *m)
+module(SDProject *p, SDModel *m)
 {
 	AVar *module;
 
@@ -222,7 +235,7 @@ module(SDModel *m)
 	module->model = m;
 
 	for (size_t i = 0; i < m->vars.len; i++) {
-		AVar *av = avar(m->vars.elems[i]);
+		AVar *av = avar(p, m->vars.elems[i]);
 		if (!av)
 			goto error;
 		slice_append(&module->avars, av);
@@ -361,7 +374,7 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (!model)
 		goto error;
 
-	sim->module = module(model);
+	sim->module = module(p, model);
 	if (!sim->module)
 		goto error;
 
@@ -429,6 +442,8 @@ calc(SDSim *s, double *data, Slice *l)
 	//printf("CALC\n");
 	for (size_t i = 0; i < l->len; i++) {
 		AVar *av = l->elems[i];
+		if (!av->node)
+			continue;
 		double v = svisit(s, av->node);
 		if (av->v->gf)
 			v = lookup(av->v->gf, v);
