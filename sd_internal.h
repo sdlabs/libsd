@@ -103,11 +103,12 @@ typedef struct {
 	VarType type;
 	char *name;
 	char *eqn;
+	char *src; // for Ref
 	Slice inflows;
 	Slice outflows;
+	Slice conns; // AVars of type VAR_REF
 	Table *gf;
 	SDModel *model;
-	Slice conns;
 	bool is_nonneg;
 } Var;
 
@@ -131,7 +132,6 @@ struct SDModel_s {
 	File *file;
 	char *name;
 	Slice vars;
-	Slice modules;
 	int refcount;
 };
 
@@ -140,6 +140,7 @@ struct AVar_s {
 	Var *v;
 	char *src;
 	Node *node;
+
 	// dependencies are defined as other AVars that must be
 	// simulated before this one in the current simulation phase.
 	// For example, an outflow that references a rate auxiliary
@@ -277,9 +278,6 @@ Node *node(NodeType ty);
 // if you want to mutate or free the node you must lock on the owner.
 void node_free(Node *n);
 bool node_walk(Walker *w, Node *n);
-
-AVar *module(SDProject *p, SDModel *m);
-int module_compile(AVar *av, int offset);
 
 AVar *avar(SDProject *p, Var *v);
 void avar_free(AVar *av);

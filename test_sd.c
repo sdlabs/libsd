@@ -217,6 +217,27 @@ test_hares_and_lynxes(void)
 		die("get_model failed\n");
 	sd_model_unref(m);
 
+	m = sd_project_get_model(p, NULL);
+	if (!m)
+		die("get_model failed\n");
+	int conditions_checked = 0;
+	for (size_t i = 0; i < m->vars.len; i++) {
+		Var *v = m->vars.elems[i];
+		if (strcmp(v->name, "hares") == 0) {
+			if (v->conns.len != 2)
+				die("hares should have 2 conns");
+			conditions_checked++;
+		}
+		if (strcmp(v->name, "lynxes") == 0) {
+			if (v->conns.len != 2)
+				die("hares should have 2 conns");
+			conditions_checked++;
+		}
+	}
+	if (conditions_checked != 2)
+		die("didn't see both hares and lynxes\n");
+	sd_model_unref(m);
+
 	s = sd_sim_new(p, NULL);
 	//if (!s)
 	//	die("new failed\n");

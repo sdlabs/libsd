@@ -90,6 +90,7 @@ static void xmile_builder_end_element(void *data);
 static SDModel *model_from_node_builder(NodeBuilder *b);
 static Var *var_from_node_builder(NodeBuilder *b);
 static Table *table_from_node_builder(NodeBuilder *b);
+static Var *ref_from_node_builder(NodeBuilder *b);
 
 static const BuilderOps NODE_BUILDER_OPS = {
 	.ref = node_builder_ref,
@@ -525,11 +526,8 @@ model_from_node_builder(NodeBuilder *nb)
 		for (size_t i = 0; i < nbvars->children.len; i++) {
 			NodeBuilder *nbvar = nbvars->children.elems[i];
 			Var *v = var_from_node_builder(nbvar);
-			if (v) {
+			if (v)
 				slice_append(&m->vars, v);
-				if (v->type == VAR_MODULE)
-					slice_append(&m->modules, v);
-			}
 		}
 	}
 
@@ -581,6 +579,11 @@ var_from_node_builder(NodeBuilder *nb)
 			v->is_nonneg = true;
 		if (strcmp(child->name, "gf") == 0)
 			v->gf = table_from_node_builder(child);
+		if (strcmp(child->name, "connect") == 0) {
+			Var *ref = ref_from_node_builder(child);
+			if (ref)
+				slice_append(&v->conns, ref);
+		}
 	}
 
 	return v;
@@ -655,4 +658,32 @@ table_from_node_builder(NodeBuilder *nb)
 error:
 	free(mem);
 	return NULL;
+}
+
+Var *
+ref_from_node_builder(NodeBuilder *nb)
+{
+	Var *ref;
+	const char *src, *dst;
+
+	ref = calloc(1, sizeof(*ref));
+	src = node_builder_get_attr(nb, "from");
+	dst = node_builder_get_attr(nb, "to");
+
+	if (!ref || !src || !dst)
+		return NULL;
+
+	ref->type = VAR_REF;
+	ref->src = strdup(src);
+	ref->name = strdup(dst);
+
+	if (!ref->src || !ref->name) {
+		free(ref->src);
+		free(ref->name);
+		free(ref);
+		// ENOMEM
+		return NULL;
+	}
+
+	return ref;
 }

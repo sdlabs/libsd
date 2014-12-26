@@ -187,7 +187,6 @@ sd_model_unref(SDModel *m)
 		for (size_t i = 0; i < m->vars.len; ++i)
 			var_free(m->vars.elems[i]);
 		free(m->vars.elems);
-		free(m->modules.elems);
 		free(m);
 	}
 }
@@ -204,8 +203,14 @@ var_free(Var *v)
 	for (size_t i = 0; i < v->outflows.len; ++i)
 		free(v->outflows.elems[i]);
 	free(v->outflows.elems);
+	for (size_t i = 0; i < v->conns.len; ++i) {
+		Var *ref = v->conns.elems[i];
+		var_free(ref);
+	}
+	free(v->conns.elems);
 	free(v->name);
 	free(v->eqn);
+	free(v->src);
 	free(v->gf);
 	sd_model_unref(v->model);
 	free(v);

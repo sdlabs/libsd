@@ -28,6 +28,9 @@ static void calc_stocks(SDSim *s, double *data, Slice *l);
 
 static double svisit(SDSim *s, Node *n);
 
+static AVar *module(SDProject *p, SDModel *model, Var *module);
+static int module_compile(AVar *av, int offset);
+
 static AVarWalker *avar_walker_new(AVar *module, AVar *av);
 static void avar_walker_ref(void *data);
 static void avar_walker_unref(void *data);
@@ -53,12 +56,13 @@ avar(SDProject *p, Var *v)
 	int err;
 
 	av = NULL;
+	err = 0;
 
 	if (v->type == VAR_MODULE) {
 		model = sd_project_get_model(p, v->name);
 		if (!model)
 			goto error;
-		av = module(p, model);
+		av = module(p, model, v);
 		if (av)
 			av->v = v;
 		return av;
@@ -67,15 +71,14 @@ avar(SDProject *p, Var *v)
 	av = calloc(1, sizeof(*av));
 	if (!av)
 		goto error;
+	av->v = v;
 
-	if (v->eqn)
+	if (v->eqn) {
 		av->src = strdup(v->eqn);
-	else
-		av->src = strdup("");
-	err = avar_eqn_parse(av);
+		err = avar_eqn_parse(av);
+	}
 	if (err)
 		goto error;
-	av->v = v;
 	av->is_const = av->node && av->node->type == N_FLOATLIT;
 
 	return av;
@@ -168,6 +171,11 @@ avar_init(AVar *av, AVar *module)
 	if (av->model) {
 		module_compile(av, 1);
 		return 0;
+	} else if (av->v->type == VAR_REF) {
+		AVar *src = resolve(module, av->v->src);
+		// FIXME: implement
+		if (src)
+			return 0;
 	}
 
 	w = avar_walker_new(module, av);
@@ -225,17 +233,37 @@ avar_free(AVar *av)
 }
 
 AVar *
-module(SDProject *p, SDModel *m)
+module(SDProject *p, SDModel *model, Var *vmodule)
 {
 	AVar *module;
+	Slice conns;
 
 	module = calloc(1, sizeof(*module));
 	if (!module)
 		goto error;
-	module->model = m;
+	module->v = vmodule;
+	module->model = model;
 
-	for (size_t i = 0; i < m->vars.len; i++) {
-		AVar *av = avar(p, m->vars.elems[i]);
+	memset(&conns, 0, sizeof(conns));
+	if (vmodule)
+		conns = vmodule->conns;
+
+	for (size_t i = 0; i < model->vars.len; i++) {
+		AVar *av;
+		Var *v;
+
+		av = NULL;
+		v = model->vars.elems[i];
+		// FIXME: this is unelegant and seems inefficient.
+		for (size_t j = 0; j < conns.len; j++) {
+			Var *r = conns.elems[j];
+			if (strcmp(v->name, r->name) == 0) {
+				av = avar(p, r);
+				break;
+			}
+		}
+		if (!av)
+			av = avar(p, v);
 		if (!av)
 			goto error;
 		slice_append(&module->avars, av);
@@ -374,7 +402,7 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (!model)
 		goto error;
 
-	sim->module = module(p, model);
+	sim->module = module(p, model, NULL);
 	if (!sim->module)
 		goto error;
 
