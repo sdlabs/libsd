@@ -74,7 +74,7 @@ avar(SDProject *p, Var *v)
 	av->v = v;
 
 	if (v->eqn) {
-		av->src = strdup(v->eqn);
+		av->eqn = strdup(v->eqn);
 		err = avar_eqn_parse(av);
 	}
 	if (err)
@@ -220,7 +220,7 @@ avar_free(AVar *av)
 		avar_free(child);
 	}
 	free(av->avars.elems);
-	free(av->src);
+	free(av->eqn);
 	node_free(av->node);
 	free(av->direct_deps.elems);
 	free(av->all_deps.elems);

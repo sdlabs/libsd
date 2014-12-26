@@ -59,12 +59,12 @@ avar_eqn_parse(AVar *v)
 	int err = SD_ERR_NO_ERROR;
 	bool ok;
 
-	if (!v || !v->src)
+	if (!v || !v->eqn)
 		return SD_ERR_UNSPECIFIED;
 
 	memset(&p, 0, sizeof(p));
 
-	lexer_init(&p.l, v->src);
+	lexer_init(&p.l, v->eqn);
 
 	ok = expr(&p, &n, 0);
 	if (!ok) {

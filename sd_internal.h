@@ -138,7 +138,7 @@ struct SDModel_s {
 // annotated var
 struct AVar_s {
 	Var *v;
-	char *src;
+	char *eqn;
 	Node *node;
 
 	// dependencies are defined as other AVars that must be
