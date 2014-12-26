@@ -23,13 +23,14 @@ static int cmp_avar(const void *a_in, const void *b_in);
 static double *sim_curr(SDSim *s);
 static double *sim_next(SDSim *s);
 
-static void calc(SDSim *s, double *data, Slice *l);
+static void calc(SDSim *s, double *data, Slice *l, bool initial);
 static void calc_stocks(SDSim *s, double *data, Slice *l);
 
 static double svisit(SDSim *s, Node *n);
 
 static AVar *module(SDProject *p, SDModel *model, Var *module);
-static int module_compile(AVar *av, int offset);
+static int module_compile(AVar *module);
+static int module_assign_offsets(AVar *module, int *offset);
 
 static AVarWalker *avar_walker_new(AVar *module, AVar *av);
 static void avar_walker_ref(void *data);
@@ -169,13 +170,15 @@ avar_init(AVar *av, AVar *module)
 
 	// is amodule if we have a model pointer
 	if (av->model) {
-		module_compile(av, 1);
-		return 0;
+		av->parent = module;
+		return module_compile(av);
 	} else if (av->v->type == VAR_REF) {
-		AVar *src = resolve(module, av->v->src);
-		// FIXME: implement
-		if (src)
+		AVar *src = resolve(module->parent, av->v->src);
+		if (src) {
+			av->src = src;
 			return 0;
+		}
+		goto error;
 	}
 
 	w = avar_walker_new(module, av);
@@ -278,9 +281,27 @@ error:
 AVar *
 resolve(AVar *module, const char *name)
 {
+	size_t len;
+	const char *subvar;
+
+	len = 0;
+
+	// a name like .area gets resolved to area
+	if (name && name[0] == '.')
+		name++;
+
+	subvar = strchr(name, '.');
+	if (subvar) {
+		len = subvar - name;
+		subvar++;
+	}
+
 	for (size_t i = 0; i < module->avars.len; i++) {
 		AVar *av = module->avars.elems[i];
-		if (strcmp(av->v->name, name) == 0)
+		if (subvar && av->v->type == VAR_MODULE && strncmp(av->v->name, name, len) == 0) {
+			return resolve(av, subvar);
+		}
+		else if (strcmp(av->v->name, name) == 0)
 			return av;
 	}
 
@@ -318,7 +339,7 @@ cmp_avar(const void *a_in, const void *b_in)
 }
 
 int
-module_compile(AVar *module, int offset)
+module_compile(AVar *module)
 {
 	AVar *av;
 	int err, failed;
@@ -337,7 +358,9 @@ module_compile(AVar *module, int offset)
 	// iterations.  Maybe.  this keeps this pretty simple as is.
 	for (size_t i = 0; i < module->avars.len; i++) {
 		av = module->avars.elems[i];
-		av->offset = offset + i;
+		// TODO: fix for multiple levels of indirection.
+		if (av->v->type == VAR_REF)
+			av->offset = av->src->offset;
 		err = avar_all_deps(av, NULL);
 		if (err)
 			return err;
@@ -345,10 +368,15 @@ module_compile(AVar *module, int offset)
 
 	for (size_t i = 0; i < module->avars.len; i++) {
 		AVar *sub = module->avars.elems[i];
-		if (sub->v->type == VAR_STOCK) {
+		if (sub->v->type == VAR_MODULE) {
+			slice_append(&module->initials, sub);
+			slice_append(&module->flows, sub);
+			slice_append(&module->stocks, sub);
+		} else if (sub->v->type == VAR_STOCK) {
 			slice_append(&module->initials, sub);
 			slice_append(&module->stocks, sub);
-		} else {
+		// refs are not simulated
+		} else if (sub->v->type != VAR_REF) {
 			slice_append(&module->initials, sub);
 			if (sub->is_const)
 				slice_append(&module->stocks, sub);
@@ -356,13 +384,6 @@ module_compile(AVar *module, int offset)
 				slice_append(&module->flows, sub);
 		}
 	}
-
-
-	// compile each model (_prepare)
-	// - isRef?
-	// - sort variables into run lists (initials/flows/stocks)(DONE)
-	// - give each variable unique ID
-	// - sort initials + flows
 
 	return SD_ERR_NO_ERROR;
 }
@@ -389,8 +410,9 @@ sd_sim_new(SDProject *p, const char *model_name)
 {
 	SDSim *sim;
 	SDModel *model;
-	int err;
+	int err, offset;
 
+	offset = 1;
 	model = NULL;
 	sim = calloc(1, sizeof(*sim));
 	if (!sim)
@@ -413,13 +435,17 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (err)
 		goto error;
 
+	err = module_assign_offsets(sim->module, &offset);
+	if (err)
+		goto error;
+
 	// at this point each model knows its dependencies.  we can
 	// sort the 3 run lists.
 	qsort(sim->module->initials.elems, sim->module->initials.len, sizeof(AVar *), cmp_avar);
 	qsort(sim->module->flows.elems, sim->module->flows.len, sizeof(AVar *), cmp_avar);
 	qsort(sim->module->stocks.elems, sim->module->stocks.len, sizeof(AVar *), cmp_avar);
 
-	sim->nvars = 1 + sim->module->avars.len;
+	sim->nvars = offset;
 	err = sd_sim_reset(sim);
 	if (err)
 		goto error;
@@ -428,6 +454,27 @@ sd_sim_new(SDProject *p, const char *model_name)
 error:
 	sd_sim_unref(sim);
 	return NULL;
+}
+
+int
+module_assign_offsets(AVar *module, int *offset)
+{
+	int err;
+	for (size_t i = 0; i < module->avars.len; i++) {
+		AVar *av;
+		av = module->avars.elems[i];
+		if (av->model) {
+			err = module_assign_offsets(av, offset);
+			if (err)
+				return err;
+		} else if (!av->src) {
+			// assign offsets for everything thats not a
+			// module or ref
+			av->offset = (*offset)++;
+		}
+	}
+
+	return 0;
 }
 
 int
@@ -459,19 +506,24 @@ sd_sim_reset(SDSim *s)
 
 	s->curr[TIME] = s->spec.start;
 
-	calc(s, s->curr, &s->module->initials);
+	calc(s, s->curr, &s->module->initials, true);
 error:
 	return err;
 }
 
 void
-calc(SDSim *s, double *data, Slice *l)
+calc(SDSim *s, double *data, Slice *l, bool initial)
 {
 	//printf("CALC\n");
 	for (size_t i = 0; i < l->len; i++) {
 		AVar *av = l->elems[i];
-		if (!av->node)
+		if (!av->node) {
+			if (initial)
+				calc(s, data, &av->initials, true);
+			else
+				calc(s, data, &av->flows, false);
 			continue;
+		}
 		double v = svisit(s, av->node);
 		if (av->v->gf)
 			v = lookup(av->v->gf, v);
@@ -508,6 +560,9 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 			data[av->offset] = prev + v*dt;
 			//printf("\t%s\t%f\n", av->v->name, prev + v*dt);
 			break;
+		case VAR_MODULE:
+			calc_stocks(s, data, &av->stocks);
+			break;
 		default:
 			v = svisit(s, av->node);
 			data[av->offset] = v;
@@ -529,7 +584,7 @@ sd_sim_run_to(SDSim *s, double end)
 	s->next = sim_next(s);
 
 	while (s->step < s->nsteps && s->curr[TIME] <= end) {
-		calc(s, s->curr, &s->module->flows);
+		calc(s, s->curr, &s->module->flows, false);
 		calc_stocks(s, s->next, &s->module->stocks);
 
 		if (s->step + 1 == s->nsteps)
@@ -618,6 +673,7 @@ svisit(SDSim *s, Node *n)
 {
 	double v = NAN;
 	double cond, l, r;
+	int off;
 	const char *name = NULL;
 
 	switch (n->type) {
@@ -628,7 +684,11 @@ svisit(SDSim *s, Node *n)
 		v = n->fval;
 		break;
 	case N_IDENT:
-		v = s->curr[n->av->offset];
+		if (n->av->src)
+			off = n->av->src->offset;
+		else
+			off = n->av->offset;
+		v = s->curr[off];
 		break;
 	case N_CALL:
 		name = n->left->sval;

@@ -561,9 +561,7 @@ var_from_node_builder(NodeBuilder *nb)
 
 	val = node_builder_get_attr(nb, "name");
 	if (val) {
-		v->name = strdup(val);
-		utf8_tolower(&v->name);
-		strrepl(v->name, "\\n", "_");
+		v->name = normalize_name(val);
 	}
 	nbeqn = node_builder_get_first_child(nb, "eqn");
 	if (nbeqn && nbeqn->content)
@@ -674,8 +672,8 @@ ref_from_node_builder(NodeBuilder *nb)
 		return NULL;
 
 	ref->type = VAR_REF;
-	ref->src = strdup(src);
-	ref->name = strdup(dst);
+	ref->src = normalize_name(src);
+	ref->name = normalize_name(dst);
 
 	if (!ref->src || !ref->name) {
 		free(ref->src);

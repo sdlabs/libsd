@@ -203,3 +203,20 @@ lookup(Table *t, double index)
 
 	return 0;
 }
+
+char *
+normalize_name(const char *n)
+{
+	char *result;
+
+	result = strdup(n);
+	if (!result)
+		return NULL;
+	utf8_tolower(&result);
+	// FIXME: be more efficient
+	strrepl(result, "\\n", "_");
+	strrepl(result, "\\r", "_");
+	strrepl(result, "\n", "_");
+	strrepl(result, "\r", "_");
+	return result;
+}

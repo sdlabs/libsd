@@ -155,9 +155,11 @@ void
 test_hares_and_lynxes(void)
 {
 	int err;
+	size_t len;
 	SDProject *p;
 	SDModel *m;
 	SDSim *s;
+	double *time, *series;
 
 	err = 0;
 	p = sd_project_open("models/hares_and_lynxes.xmile", &err);
@@ -239,11 +241,30 @@ test_hares_and_lynxes(void)
 	sd_model_unref(m);
 
 	s = sd_sim_new(p, NULL);
-	//if (!s)
-	//	die("new failed\n");
+	if (!s)
+		die("new failed\n");
 
-	(void)hares_series;
+	err = sd_sim_run_to_end(s);
+	if (err)
+		die("hares_and_lynxes run to end failed\n");
 
+	len = sd_sim_get_stepcount(s);
+	time = calloc(len, sizeof(double));
+	series = calloc(len, sizeof(double));
+
+	sd_sim_get_series(s, "time", time, len);
+	sd_sim_get_series(s, "hares.hares", series, len);
+	for (size_t i = 0; i < len; i++) {
+		if (time[i] != .5*i + 1)
+			die("time off for step %zu: %f\n", i, time[i]);
+		(void)hares_series;
+		printf("%f\t%f\t%f\n", time[i], series[i], hares_series[i]);
+		//if (series[i] != hares_series[i])
+		//	die("hares off: %f vs %f\n", series[i], hares_series[i]);
+	}
+
+	free(time);
+	free(series);
 	sd_sim_unref(s);
 
 	sd_project_unref(p);
@@ -303,8 +324,8 @@ test_predator_prey(void)
 		die("run_to_end failed: %d\n", err);
 
 	err = sd_sim_get_value(s, "hares", &v);
-	//if (err || v != 50000)
-	//	die("hares value %f not 50000\n", v);
+	if (err || v != 50000)
+		die("hares value %f not 50000\n", v);
 
 	sd_sim_unref(s);
 	sd_project_unref(p);
