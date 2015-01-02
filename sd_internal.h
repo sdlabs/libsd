@@ -140,6 +140,7 @@ struct AVar_s {
 	Var *v;
 	char *eqn;
 	Node *node;
+	AVar *parent;
 
 	// dependencies are defined as other AVars that must be
 	// simulated before this one in the current simulation phase.
@@ -165,7 +166,6 @@ struct AVar_s {
 	Slice stocks;
 	Slice avars;
 
-	AVar *parent; // for module
 	AVar *src; // for ref
 
 	int offset;
@@ -284,7 +284,7 @@ Node *node(NodeType ty);
 void node_free(Node *n);
 bool node_walk(Walker *w, Node *n);
 
-AVar *avar(SDProject *p, Var *v);
+AVar *avar(AVar *module, Var *v);
 void avar_free(AVar *av);
 int avar_init(AVar *av, AVar *module); // called after all avars have been created
 int avar_eqn_parse(AVar *av);

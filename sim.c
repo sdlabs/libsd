@@ -28,7 +28,7 @@ static void calc_stocks(SDSim *s, double *data, Slice *l);
 
 static double svisit(SDSim *s, Node *n);
 
-static AVar *module(SDProject *p, SDModel *model, Var *module);
+static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
 static int module_assign_offsets(AVar *module, int *offset);
 
@@ -50,7 +50,7 @@ static const WalkerOps AVAR_WALKER_OPS = {
 
 
 AVar *
-avar(SDProject *p, Var *v)
+avar(AVar *parent, Var *v)
 {
 	SDModel *model;
 	AVar *av;
@@ -60,10 +60,10 @@ avar(SDProject *p, Var *v)
 	err = 0;
 
 	if (v->type == VAR_MODULE) {
-		model = sd_project_get_model(p, v->name);
+		model = sd_project_get_model(parent->model->file->project, v->name);
 		if (!model)
 			goto error;
-		av = module(p, model, v);
+		av = module(parent->model->file->project, parent, model, v);
 		if (av)
 			av->v = v;
 		return av;
@@ -73,6 +73,7 @@ avar(SDProject *p, Var *v)
 	if (!av)
 		goto error;
 	av->v = v;
+	av->parent = parent;
 
 	if (v->eqn) {
 		av->eqn = strdup(v->eqn);
@@ -170,7 +171,6 @@ avar_init(AVar *av, AVar *module)
 
 	// is amodule if we have a model pointer
 	if (av->model) {
-		av->parent = module;
 		return module_compile(av);
 	} else if (av->v->type == VAR_REF) {
 		AVar *src = resolve(module->parent, av->v->src);
@@ -236,7 +236,7 @@ avar_free(AVar *av)
 }
 
 AVar *
-module(SDProject *p, SDModel *model, Var *vmodule)
+module(SDProject *p, AVar *parent, SDModel *model, Var *vmodule)
 {
 	AVar *module;
 	Slice conns;
@@ -246,6 +246,7 @@ module(SDProject *p, SDModel *model, Var *vmodule)
 		goto error;
 	module->v = vmodule;
 	module->model = model;
+	module->parent = parent;
 
 	memset(&conns, 0, sizeof(conns));
 	if (vmodule)
@@ -261,12 +262,12 @@ module(SDProject *p, SDModel *model, Var *vmodule)
 		for (size_t j = 0; j < conns.len; j++) {
 			Var *r = conns.elems[j];
 			if (strcmp(v->name, r->name) == 0) {
-				av = avar(p, r);
+				av = avar(module, r);
 				break;
 			}
 		}
 		if (!av)
-			av = avar(p, v);
+			av = avar(module, v);
 		if (!av)
 			goto error;
 		slice_append(&module->avars, av);
@@ -424,7 +425,7 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (!model)
 		goto error;
 
-	sim->module = module(p, model, NULL);
+	sim->module = module(p, NULL, model, NULL);
 	if (!sim->module)
 		goto error;
 
