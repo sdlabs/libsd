@@ -89,10 +89,9 @@ avar(AVar *parent, Var *v)
 	av->v = v;
 	av->parent = parent;
 
-	if (v->eqn) {
-		av->eqn = strdup(v->eqn);
+	if (v->eqn)
 		err = avar_eqn_parse(av);
-	}
+
 	if (err)
 		goto error;
 	av->is_const = av->node && av->node->type == N_FLOATLIT;
@@ -290,7 +289,6 @@ avar_free(AVar *av)
 		avar_free(child);
 	}
 	free(av->avars.elems);
-	free(av->eqn);
 	free(av->qual_name);
 	node_free(av->node);
 	free(av->direct_deps.elems);

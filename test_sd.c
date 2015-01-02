@@ -978,9 +978,11 @@ verify_walker_end_child(void *data, Node *n)
 void
 test_parse2(void)
 {
+	Var var;
 	AVar expr;
 	int err;
 
+	memset(&var, 0, sizeof(var));
 	memset(&expr, 0, sizeof(expr));
 
 	if (!avar_eqn_parse(NULL))
@@ -988,11 +990,12 @@ test_parse2(void)
 	if (!avar_eqn_parse(&expr))
 		die("expected parser error 2\n");
 
-	expr.eqn = NULL;
+	expr.v = &var;
+	var.eqn = NULL;
 	if (!avar_eqn_parse(&expr))
 		die("expected parser error 3\n");
 
-	expr.eqn = (char *)(intptr_t)"";
+	var.eqn = (char *)(intptr_t)"";
 	err = avar_eqn_parse(&expr);
 	if (err)
 		die("unexpected error\n");
@@ -1003,14 +1006,14 @@ test_parse2(void)
 	for (size_t i = 0; i < sizeof(PARSE_TEST_FAILS)/sizeof(*PARSE_TEST_FAILS); i++) {
 		const char *expected_failure = PARSE_TEST_FAILS[i];
 
-		expr.eqn = (char *)(intptr_t)expected_failure;
+		var.eqn = (char *)(intptr_t)expected_failure;
 		//printf("testing '%s'\n", expected_failure);
 		err = avar_eqn_parse(&expr);
 		if (!err)
 			die("expected error for '%s'\n", expected_failure);
 
 		node_free(expr.node);
-		expr.eqn = NULL;
+		var.eqn = NULL;
 		expr.node = NULL;
 	}
 	(void)verify_walker_new;
@@ -1018,7 +1021,7 @@ test_parse2(void)
 	for (size_t i = 0; i < sizeof(PARSE_TESTS2)/sizeof(*PARSE_TESTS2); i++) {
 		const ParseTestData2 *test = &PARSE_TESTS2[i];
 
-		expr.eqn = (char *)(intptr_t)test->in;
+		var.eqn = (char *)(intptr_t)test->in;
 		err = avar_eqn_parse(&expr);
 		if (err)
 			die("failed to parse '%s' (%d)\n", test->in, err);
@@ -1048,7 +1051,7 @@ test_parse2(void)
 		w->w.ops->unref(w);
 
 		node_free(expr.node);
-		expr.eqn = NULL;
+		var.eqn = NULL;
 		expr.node = NULL;
 	}
 

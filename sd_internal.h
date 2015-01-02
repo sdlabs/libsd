@@ -140,7 +140,6 @@ struct SDModel_s {
 // annotated var
 struct AVar_s {
 	Var *v;
-	char *eqn;
 	Node *node;
 	AVar *parent;
 
@@ -167,7 +166,6 @@ struct AVar_s {
 	// The model refers to this module's model.  initials, flows &
 	// stocks are also for modules.
 	SDModel *model;
-	Slice modules; // modules of this type
 	Slice initials;
 	Slice flows;
 	Slice stocks;
