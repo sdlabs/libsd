@@ -36,8 +36,9 @@ static const char *const BINARY[] = {
 	"^",
 	"*/",
 	"+-",
+	"><",
 };
-static const int MAX_BINARY = 3;
+static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
 static void parser_errorf(Parser *p, const char *s, ...);
 static bool consume_tok(Parser *p, Rune r);
@@ -68,7 +69,7 @@ avar_eqn_parse(AVar *v)
 
 	ok = expr(&p, &n, 0);
 	if (!ok) {
-		//printf("expr bad (%zu)\n", p.errs.len);
+		//printf("expr '%s' bad (%zu)\n", v->v->eqn, p.errs.len);
 		//if (p.errs.len)
 		//	printf("err: %s\n", (char *)p.errs.elems[0]);
 		err = SD_ERR_UNSPECIFIED;
@@ -428,8 +429,10 @@ expr(Parser *p, Node **n, int level)
 			ok = fact(p, &rhs);
 		else
 			ok = expr(p, &rhs, 0);
-		if (!ok)
+		if (!ok || !rhs) {
+			ok = false;
 			goto out;
+		}
 
 		x = node(N_BINARY);
 		// FIXME(bp) no mem
@@ -550,7 +553,7 @@ call(Parser *p, Node **n, Node *fn)
 	x->left = fn;
 	fn = NULL;
 
-	// no-arg call - simplifies logic to special case
+	// no-arg call - simplifies logic to special case this.
 	if (consume_tok(p, ')'))
 		goto out;
 
@@ -761,9 +764,11 @@ visit(Walker *w, Node *n)
 		break;
 	case N_CALL:
 		wc = w->ops->start_child(w, n->left);
-		ok = visit(wc, n->left);
-		wc->ops->unref(wc);
-		w->ops->end_child(w, n->left);
+		if (wc) {
+			ok = visit(wc, n->left);
+			wc->ops->unref(wc);
+			w->ops->end_child(w, n->left);
+		}
 		if (!ok)
 			break;
 		for (size_t i = 0; i < n->args.len; i++) {

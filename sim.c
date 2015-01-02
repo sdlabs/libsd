@@ -174,28 +174,21 @@ avar_walker_unref(void *data)
 void
 avar_walker_start(void *data, Node *n)
 {
-	AVarWalker *vw = data;
+	AVarWalker *avw = data;
 	AVar *dep;
-	bool ok;
+
+	avw->curr = n;
 
 	switch (n->type) {
 	case N_IDENT:
-		dep = resolve(vw->module, n->sval);
+		dep = resolve(avw->module, n->sval);
 		if (!dep) {
-			ok = false;
-			for (size_t i = 0; i < RT_FNS_LEN; i++) {
-				if (strcmp(n->sval, RT_FNS[i].name) == 0) {
-					ok = true;
-					break;
-				}
-			}
-			if (!ok)
-				printf("resolve failed for %s\n", n->sval);
+			printf("resolve failed for %s\n", n->sval);
 			// TODO: error
 			return;
 		}
 		n->av = dep;
-		slice_append(&vw->av->direct_deps, dep);
+		slice_append(&avw->av->direct_deps, dep);
 		break;
 	case N_FLOATLIT:
 		n->fval = atof(n->sval);
@@ -218,10 +211,16 @@ avar_walker_start(void *data, Node *n)
 Walker *
 avar_walker_start_child(void *data, Node *n)
 {
-	Walker *w = data;
-	w->ops->ref(w);
+	AVarWalker *avw = data;
+	Node *curr = avw->curr;
 
-	return w;
+	// skip trying to resolve function name identifiers for calls
+	// a second time - already handled in avar_walker_start above
+	if (curr->type == N_CALL && n == curr->left)
+		return NULL;
+
+	avw->w.ops->ref(&avw->w);
+	return &avw->w;
 }
 
 void
@@ -353,8 +352,11 @@ resolve(AVar *module, const char *name)
 
 	len = 0;
 
+	if (!name)
+		return NULL;
+
 	// a name like .area gets resolved to area
-	if (name && name[0] == '.')
+	if (name[0] == '.')
 		name++;
 
 	subvar = strchr(name, '.');
