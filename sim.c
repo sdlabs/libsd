@@ -38,6 +38,9 @@ static double svisit(SDSim *s, Node *n, double dt, double time);
 static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
 static int module_assign_offsets(AVar *module, int *offset);
+static int module_get_varnames(AVar *module, const char **result, size_t max);
+
+static const char *avar_qual_name(AVar *av);
 
 static AVarWalker *avar_walker_new(AVar *module, AVar *av);
 static void avar_walker_ref(void *data);
@@ -99,6 +102,40 @@ error:
 	printf("eqn parse failed for %s\n", v->name);
 	free(av);
 	return NULL;
+}
+
+const char *
+avar_qual_name(AVar *av)
+{
+	const char *parent;
+	size_t parent_len, name_len;
+
+	if (av->qual_name)
+		return av->qual_name;
+
+	// if we're in the root model, return the var's name
+	if (av->parent->parent == NULL)
+		return av->v->name;
+
+	parent = avar_qual_name(av->parent);
+	if (!parent)
+		// TODO(bp) handle ENOMEM
+		return NULL;
+	parent_len = strlen(parent);
+
+	name_len = strlen(av->v->name);
+
+	av->qual_name = malloc(parent_len + name_len + 2);
+	if (!av->qual_name)
+		// TODO(bp) handle ENOMEM
+		return NULL;
+
+	memcpy(av->qual_name, parent, parent_len);
+	av->qual_name[parent_len] = '.';
+	memcpy(&av->qual_name[parent_len+1], av->v->name, name_len);
+	av->qual_name[parent_len+name_len+1] = '\0';
+
+	return av->qual_name;
 }
 
 AVarWalker *
@@ -254,6 +291,7 @@ avar_free(AVar *av)
 	}
 	free(av->avars.elems);
 	free(av->eqn);
+	free(av->qual_name);
 	node_free(av->node);
 	free(av->direct_deps.elems);
 	free(av->all_deps.elems);
@@ -790,23 +828,42 @@ sd_sim_get_varcount(SDSim *sim)
 int
 sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
 {
-	size_t i;
-
-	i = 0;
-
 	if (!sim || !result)
 		return -1;
 	else if (max == 0)
 		return 0;
 
-	result[i] = "time";
+	result[0] = "time";
 
-	// FIXME: revise for modules case
-	for (i = 0; i < sim->module->avars.len && i+1 < max; i++) {
-		AVar *av = sim->module->avars.elems[i];
-		result[i+1] = av->v->name;
+	return module_get_varnames(sim->module, result+1, max-1) + 1;
+}
+
+int
+module_get_varnames(AVar *module, const char **result, size_t max)
+{
+	size_t i, n, skipped, children;
+
+	i = 0;
+	children = 0;
+	skipped = 0;
+
+	for (i = 0; i < module->avars.len && max > 0; i++) {
+		AVar *av = module->avars.elems[i];
+		if (av->model) {
+			n = module_get_varnames(av, result, max);
+			children += n;
+			result += n;
+			max -= n;
+			skipped++;
+		} else if (!av->src) {
+			// only include non-ghosts in output
+			result[i-skipped] = avar_qual_name(av);
+			max--;
+		} else {
+			skipped++;
+		}
 	}
-	return (int)i+1;
+	return (int)(i + children - skipped);
 }
 
 int

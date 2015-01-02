@@ -144,6 +144,11 @@ struct AVar_s {
 	Node *node;
 	AVar *parent;
 
+	// fully qualified name, for use in get_varnames.  Always
+	// empty for variables that reside in the root model, lazily
+	// calculated for variables in nested modules.
+	char *qual_name;
+
 	// dependencies are defined as other AVars that must be
 	// simulated before this one in the current simulation phase.
 	// For example, an outflow that references a rate auxiliary
