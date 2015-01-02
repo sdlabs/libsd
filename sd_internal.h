@@ -55,7 +55,7 @@ typedef struct AVar_s AVar;
 typedef struct Node_s Node;
 typedef struct WalkerOps_s WalkerOps;
 
-typedef double (*SDFn)(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+typedef double (*Fn)(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 
 
 typedef struct {
@@ -199,7 +199,7 @@ struct Node_s {
 	double fval;
 	AVar *av;
 	Slice args;
-	SDFn fn;
+	Fn fn;
 };
 
 typedef struct {

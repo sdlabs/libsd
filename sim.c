@@ -18,6 +18,11 @@ typedef struct {
 	Node *curr;
 } AVarWalker;
 
+typedef struct {
+	const char *const name;
+	Fn fn;
+} FnDef;
+
 static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 
 static int cmp_avar(const void *a_in, const void *b_in);
@@ -50,6 +55,10 @@ static const WalkerOps AVAR_WALKER_OPS = {
 	.end = NULL,
 };
 
+static const FnDef RT_FNS[] = {
+	{"pulse", rt_pulse},
+};
+static const size_t RT_FNS_LEN = sizeof(RT_FNS)/sizeof(RT_FNS[0]);
 
 AVar *
 avar(AVar *parent, Var *v)
@@ -131,12 +140,21 @@ avar_walker_start(void *data, Node *n)
 {
 	AVarWalker *vw = data;
 	AVar *dep;
+	bool ok;
 
 	switch (n->type) {
 	case N_IDENT:
 		dep = resolve(vw->module, n->sval);
 		if (!dep) {
-			printf("resolve failed for %s\n", n->sval);
+			ok = false;
+			for (size_t i = 0; i < RT_FNS_LEN; i++) {
+				if (strcmp(n->sval, RT_FNS[i].name) == 0) {
+					ok = true;
+					break;
+				}
+			}
+			if (!ok)
+				printf("resolve failed for %s\n", n->sval);
 			// TODO: error
 			return;
 		}
@@ -147,8 +165,15 @@ avar_walker_start(void *data, Node *n)
 		n->fval = atof(n->sval);
 		break;
 	case N_CALL:
-		if (strcmp(n->left->sval, "pulse") == 0)
-			n->fn = rt_pulse;
+		for (size_t i = 0; i < RT_FNS_LEN; i++) {
+			if (strcmp(n->left->sval, RT_FNS[i].name) == 0) {
+				n->fn = RT_FNS[i].fn;
+				break;
+			}
+		}
+		if (!n->fn)
+			printf("unknown fn '%s' for call\n", n->left->sval);
+		break;
 	default:
 		break;
 	}
