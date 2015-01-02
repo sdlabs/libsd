@@ -159,6 +159,9 @@ struct AVar_s {
 	bool have_all_deps;
 	bool is_const;
 
+	// TODO: using a tagged union would shrink this structure, but
+	// IDK if it is worth it.
+
 	// only stocks have inflows + outflows
 	Slice inflows;
 	Slice outflows;
