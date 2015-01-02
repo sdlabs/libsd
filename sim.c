@@ -674,8 +674,8 @@ svisit(SDSim *s, Node *n)
 {
 	double v = NAN;
 	double cond, l, r;
+	double args[6];
 	int off;
-	const char *name = NULL;
 
 	switch (n->type) {
 	case N_PAREN:
@@ -692,8 +692,13 @@ svisit(SDSim *s, Node *n)
 		v = s->curr[off];
 		break;
 	case N_CALL:
-		name = n->left->sval;
-		(void)name;
+		memset(args, 0, 6*sizeof(*args));
+		(void)n->left->sval;
+		for (size_t i = 0; i < n->args.len; i++) {
+			Node *arg = n->args.elems[i];
+			args[i] = svisit(s, arg);
+		}
+		n->fn(s, n, n->args.len, args);
 		break;
 	case N_IF:
 		cond = svisit(s, n->cond);
