@@ -257,10 +257,8 @@ test_hares_and_lynxes(void)
 	for (size_t i = 0; i < len; i++) {
 		if (time[i] != .5*i + 1)
 			die("time off for step %zu: %f\n", i, time[i]);
-		(void)hares_series;
-		printf("%f\t%f\t%f\n", time[i], series[i], hares_series[i]);
-		//if (series[i] != hares_series[i])
-		//	die("hares off: %f vs %f\n", series[i], hares_series[i]);
+		if (series[i] != hares_series[i])
+			die("hares off: %f vs %f\n", series[i], hares_series[i]);
 	}
 
 	free(time);

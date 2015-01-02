@@ -18,6 +18,8 @@ typedef struct {
 	Node *curr;
 } AVarWalker;
 
+static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+
 static int cmp_avar(const void *a_in, const void *b_in);
 
 static double *sim_curr(SDSim *s);
@@ -26,7 +28,7 @@ static double *sim_next(SDSim *s);
 static void calc(SDSim *s, double *data, Slice *l, bool initial);
 static void calc_stocks(SDSim *s, double *data, Slice *l);
 
-static double svisit(SDSim *s, Node *n);
+static double svisit(SDSim *s, Node *n, double dt, double time);
 
 static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
@@ -144,6 +146,9 @@ avar_walker_start(void *data, Node *n)
 	case N_FLOATLIT:
 		n->fval = atof(n->sval);
 		break;
+	case N_CALL:
+		if (strcmp(n->left->sval, "pulse") == 0)
+			n->fn = rt_pulse;
 	default:
 		break;
 	}
@@ -515,6 +520,10 @@ error:
 void
 calc(SDSim *s, double *data, Slice *l, bool initial)
 {
+	double dt;
+
+	dt = s->spec.dt;
+
 	//printf("CALC\n");
 	for (size_t i = 0; i < l->len; i++) {
 		AVar *av = l->elems[i];
@@ -525,7 +534,7 @@ calc(SDSim *s, double *data, Slice *l, bool initial)
 				calc(s, data, &av->flows, false);
 			continue;
 		}
-		double v = svisit(s, av->node);
+		double v = svisit(s, av->node, dt, data[0]);
 		if (av->v->gf)
 			v = lookup(av->v->gf, v);
 		//printf("\t%s\t%f\n", av->v->name, v);
@@ -552,11 +561,11 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 			v = 0;
 			for (size_t i = 0; i < av->inflows.len; i++) {
 				AVar *in = av->inflows.elems[i];
-				v += svisit(s, in->node);
+				v += svisit(s, in->node, dt, s->curr[0]);
 			}
 			for (size_t i = 0; i < av->outflows.len; i++) {
 				AVar *out = av->outflows.elems[i];
-				v -= svisit(s, out->node);
+				v -= svisit(s, out->node, dt, s->curr[0]);
 			}
 			data[av->offset] = prev + v*dt;
 			//printf("\t%s\t%f\n", av->v->name, prev + v*dt);
@@ -565,7 +574,7 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 			calc_stocks(s, data, &av->stocks);
 			break;
 		default:
-			v = svisit(s, av->node);
+			v = svisit(s, av->node, dt, s->curr[0]);
 			data[av->offset] = v;
 			break;
 		}
@@ -670,7 +679,7 @@ sd_sim_unref(SDSim *sim)
 }
 
 double
-svisit(SDSim *s, Node *n)
+svisit(SDSim *s, Node *n, double dt, double time)
 {
 	double v = NAN;
 	double cond, l, r;
@@ -679,7 +688,7 @@ svisit(SDSim *s, Node *n)
 
 	switch (n->type) {
 	case N_PAREN:
-		v = svisit(s, n->left);
+		v = svisit(s, n->left, dt, time);
 		break;
 	case N_FLOATLIT:
 		v = n->fval;
@@ -696,20 +705,20 @@ svisit(SDSim *s, Node *n)
 		(void)n->left->sval;
 		for (size_t i = 0; i < n->args.len; i++) {
 			Node *arg = n->args.elems[i];
-			args[i] = svisit(s, arg);
+			args[i] = svisit(s, arg, dt, time);
 		}
-		n->fn(s, n, n->args.len, args);
+		v = n->fn(s, n, dt, time, n->args.len, args);
 		break;
 	case N_IF:
-		cond = svisit(s, n->cond);
+		cond = svisit(s, n->cond, dt, time);
 		if (cond != 0)
-			v = svisit(s, n->left);
+			v = svisit(s, n->left, dt, time);
 		else
-			v = svisit(s, n->right);
+			v = svisit(s, n->right, dt, time);
 		break;
 	case N_BINARY:
-		l = svisit(s, n->left);
-		r = svisit(s, n->right);
+		l = svisit(s, n->left, dt, time);
+		r = svisit(s, n->right, dt, time);
 		switch (n->op) {
 		case '+':
 			v = l + r;
@@ -797,4 +806,32 @@ sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)
 		results[i] = s->slab[i*s->nvars + off];
 
 	return i;
+}
+
+double
+rt_pulse(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+{
+	double magnitude, first_pulse, next_pulse, interval;
+
+	magnitude = args[0];
+	first_pulse = args[1];
+	if (len > 2)
+		interval = args[2];
+	else
+		interval = 0;
+
+	if (time < first_pulse)
+		return 0;
+
+	next_pulse = first_pulse;
+
+	while (time >= next_pulse) {
+		if (time < next_pulse + dt)
+			return magnitude/dt;
+		else if (interval <= 0)
+			break;
+		else
+			next_pulse += interval;
+	}
+	return 0;
 }

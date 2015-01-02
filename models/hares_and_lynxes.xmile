@@ -140,7 +140,7 @@
 			</gf>
 		</aux>
 		<flow name="harvest">
-			<eqn>0{PULSE( size_of_one_time_lynx_harvest , 4 , 0 ) }</eqn>
+			<eqn>PULSE( size_of_one_time_lynx_harvest , 4 , 0 )</eqn>
 			<non_negative />
 		</flow>
 		<aux name="size_of_one\ntime_lynx_harvest" access="input">
