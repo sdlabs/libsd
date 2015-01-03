@@ -234,6 +234,8 @@ avar_init(AVar *av, AVar *module)
 	AVarWalker *w;
 	bool ok;
 
+	w = NULL;
+
 	// is amodule if we have a model pointer
 	if (av->model) {
 		return module_compile(av);
