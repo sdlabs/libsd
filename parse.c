@@ -36,7 +36,7 @@ static const char *const BINARY[] = {
 	"^",
 	"*/",
 	"+-",
-	"><≥≤≶",
+	"><≥≤",
 };
 static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
@@ -69,9 +69,9 @@ avar_eqn_parse(AVar *v)
 
 	ok = expr(&p, &n, 0);
 	if (!ok) {
-		printf("expr '%s' bad (%zu)\n", v->v->eqn, p.errs.len);
-		if (p.errs.len)
-			printf("err: %s\n", (char *)p.errs.elems[0]);
+		//printf("expr '%s' bad (%zu)\n", v->v->eqn, p.errs.len);
+		//if (p.errs.len)
+		//	printf("err: %s\n", (char *)p.errs.elems[0]);
 		err = SD_ERR_UNSPECIFIED;
 		node_free(n);
 		goto out;
