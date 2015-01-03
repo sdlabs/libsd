@@ -36,7 +36,7 @@ static const char *const BINARY[] = {
 	"^",
 	"*/",
 	"+-",
-	"><",
+	"><≥≤≶",
 };
 static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
@@ -69,9 +69,9 @@ avar_eqn_parse(AVar *v)
 
 	ok = expr(&p, &n, 0);
 	if (!ok) {
-		//printf("expr '%s' bad (%zu)\n", v->v->eqn, p.errs.len);
-		//if (p.errs.len)
-		//	printf("err: %s\n", (char *)p.errs.elems[0]);
+		printf("expr '%s' bad (%zu)\n", v->v->eqn, p.errs.len);
+		if (p.errs.len)
+			printf("err: %s\n", (char *)p.errs.elems[0]);
 		err = SD_ERR_UNSPECIFIED;
 		node_free(n);
 		goto out;
@@ -236,8 +236,18 @@ lexer_nexttok(Lexer *l, Token *t)
 
 	strncpy(t->buf, &l->src[pos], len);
 	t->buf[len] = '\0';
+
+	// replace common multi-rune ops with single-rune equivalents.
+	if (strcmp(t->buf, ">=") == 0) {
+		strcpy(t->buf, "≥");
+	} else if (strcmp(t->buf, "<=") == 0) {
+		strcpy(t->buf, "≤");
+	} else if (strcmp(t->buf, "<>") == 0) {
+		strcpy(t->buf, "=");
+	}
+
 	t->start = t->buf;
-	t->len = l->pos - pos;
+	t->len = strlen(t->buf);
 	t->loc.line = l->line;
 	t->loc.pos = pos - l->lstart;
 	t->type = TOK_TOKEN;
@@ -663,6 +673,7 @@ bool
 consume_tok(Parser *p, Rune r)
 {
 	Token t;
+	Rune tr;
 	int err;
 	bool ok = false;
 
@@ -671,8 +682,9 @@ consume_tok(Parser *p, Rune r)
 	err = lexer_peek(&p->l, &t);
 	if (err)
 		goto out;
+	charntorune(&tr, t.start, t.len);
 	// FIXME(bp) better error handling
-	ok = t.type == TOK_TOKEN && (Rune)t.start[0] == r;
+	ok = t.type == TOK_TOKEN && tr == r;
 	if (ok)
 		lexer_nexttok(&p->l, &t);
 out:
@@ -683,12 +695,16 @@ out:
 bool
 consume_any(Parser *p, const char *ops, Rune *op)
 {
+	size_t len, pos, n;
+	Rune r;
 	bool ok;
-	size_t len = strlen(ops);
-	for (size_t i = 0; i < len; i++) {
-		ok = consume_tok(p, ops[i]);
+
+	len = strlen(ops);
+
+	for (pos = 0; (n = charntorune(&r, &ops[pos], len-pos)); pos += n) {
+		ok = consume_tok(p, r);
 		if (ok) {
-			*op = ops[i];
+			*op = r;
 			return true;
 		}
 	}

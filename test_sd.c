@@ -615,6 +615,16 @@ static const LexTestData LEX_TESTS[] = {
 		{"else", TOK_RESERVED},
 		{"0", TOK_NUMBER},
 	}},
+	{"IF a >= 1 THEN b ELSE c", {
+		{"if", TOK_RESERVED},
+		{"a", TOK_IDENT},
+		{"≥", TOK_TOKEN},
+		{"1", TOK_NUMBER},
+		{"then", TOK_RESERVED},
+		{"b", TOK_IDENT},
+		{"else", TOK_RESERVED},
+		{"c", TOK_IDENT},
+	}},
 	// exponent 'e' is case insensitive
 	{"5E4", {
 		{"5e4", TOK_NUMBER},
@@ -654,7 +664,7 @@ static const LexTestData LEX_TESTS[] = {
 	}},
 	{"3 <> 4", {
 		{"3", TOK_NUMBER},
-		{"<>", TOK_TOKEN},
+		{"=", TOK_TOKEN},
 		{"4", TOK_NUMBER},
 	}},
 	{"3 >< 4", {
@@ -665,12 +675,12 @@ static const LexTestData LEX_TESTS[] = {
 	}},
 	{"3 <= 4", {
 		{"3", TOK_NUMBER},
-		{"<=", TOK_TOKEN},
+		{"≤", TOK_TOKEN},
 		{"4", TOK_NUMBER},
 	}},
 	{"3 >= 4", {
 		{"3", TOK_NUMBER},
-		{">=", TOK_TOKEN},
+		{"≥", TOK_TOKEN},
 		{"4", TOK_NUMBER},
 	}},
 	{"hares * birth_fraction", {
@@ -892,6 +902,14 @@ static const ParseTestData2 PARSE_TESTS2[] = {
 	{"IF a > 1 THEN b ELSE c", {
 		{N_IF, 0, NULL},
 		{N_BINARY, '>', NULL},
+		{N_IDENT, 0, "a"},
+		{N_FLOATLIT, 0, "1"},
+		{N_IDENT, 0, "b"},
+		{N_IDENT, 0, "c"},
+	}},
+	{"IF a >= 1 THEN b ELSE c", {
+		{N_IF, 0, NULL},
+		{N_BINARY, u'≥', NULL},
 		{N_IDENT, 0, "a"},
 		{N_FLOATLIT, 0, "1"},
 		{N_IDENT, 0, "b"},
