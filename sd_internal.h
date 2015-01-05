@@ -173,6 +173,7 @@ struct AVar_s {
 	Slice flows;
 	Slice stocks;
 	Slice avars;
+	Var *time;
 
 	AVar *src; // for ref
 

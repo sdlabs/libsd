@@ -246,6 +246,8 @@ avar_init(AVar *av, AVar *module)
 			return 0;
 		}
 		goto error;
+	} else if (!av->v->eqn && av->v->name && strcmp(av->v->name, "time") == 0) {
+		return 0;
 	}
 
 	w = avar_walker_new(module, av);
@@ -299,6 +301,7 @@ avar_free(AVar *av)
 	free(av->initials.elems);
 	free(av->flows.elems);
 	free(av->stocks.elems);
+	var_free(av->time);
 	free(av);
 }
 
@@ -314,6 +317,22 @@ module(SDProject *p, AVar *parent, SDModel *model, Var *vmodule)
 	module->v = vmodule;
 	module->model = model;
 	module->parent = parent;
+
+	if (!parent) {
+		Var *time = calloc(1, sizeof(*time));
+		if (!time)
+			goto error;
+		time->type = VAR_AUX;
+		time->name = strdup("time");
+		module->time = time;
+
+		AVar *atime = calloc(1, sizeof(*atime));
+		if (!atime)
+			goto error;
+		atime->v = time;
+		atime->parent = module;
+		slice_append(&module->avars, atime);
+	}
 
 	memset(&conns, 0, sizeof(conns));
 	if (vmodule)
@@ -413,6 +432,7 @@ int
 module_compile(AVar *module)
 {
 	AVar *av;
+	size_t off;
 	int err, failed;
 
 	failed = 0;
@@ -437,7 +457,12 @@ module_compile(AVar *module)
 			return err;
 	}
 
-	for (size_t i = 0; i < module->avars.len; i++) {
+	if (!module->parent)
+		off = 1;
+	else
+		off = 0;
+
+	for (size_t i = off; i < module->avars.len; i++) {
 		AVar *sub = module->avars.elems[i];
 		if (sub->v->type == VAR_MODULE) {
 			slice_append(&module->initials, sub);
@@ -483,7 +508,7 @@ sd_sim_new(SDProject *p, const char *model_name)
 	SDModel *model;
 	int err, offset;
 
-	offset = 1;
+	offset = 0;
 	model = NULL;
 	sim = calloc(1, sizeof(*sim));
 	if (!sim)
@@ -847,9 +872,7 @@ sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
 	else if (max == 0)
 		return 0;
 
-	result[0] = "time";
-
-	return module_get_varnames(sim->module, result+1, max-1) + 1;
+	return module_get_varnames(sim->module, result, max);
 }
 
 int
