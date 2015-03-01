@@ -23,6 +23,8 @@ typedef struct {
 	Fn fn;
 } FnDef;
 
+static double rt_min(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+static double rt_max(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 
 static int cmp_avar(const void *a_in, const void *b_in);
@@ -60,6 +62,8 @@ static const WalkerOps AVAR_WALKER_OPS = {
 
 static const FnDef RT_FNS[] = {
 	{"pulse", rt_pulse},
+	{"min", rt_min},
+	{"max", rt_max},
 };
 static const size_t RT_FNS_LEN = sizeof(RT_FNS)/sizeof(RT_FNS[0]);
 
@@ -953,4 +957,32 @@ rt_pulse(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
 			next_pulse += interval;
 	}
 	return 0;
+}
+
+double
+rt_min(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+{
+	double a, b;
+
+	if (len != 2)
+		return NAN;
+
+	a = args[0];
+	b = args[1];
+
+	return a < b ? a : b;
+}
+
+double
+rt_max(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+{
+	double a, b;
+
+	if (len != 2)
+		return NAN;
+
+	a = args[0];
+	b = args[1];
+
+	return a > b ? a : b;
 }
