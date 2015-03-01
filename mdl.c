@@ -102,7 +102,7 @@ main(int argc, char *const argv[])
 		result->series = calloc(nsteps, sizeof(double));
 		n = sd_sim_get_series(s, names[v], result->series, nsteps);
 		if (n != nsteps)
-			die("short series read of %d for '%s'\n", n, names[v]);
+			die("short series read of %d for '%s' (%d)\n", n, names[v], v);
 		fmt = v == nvars-1 ? "%s\n" : "%s\t";
 		printf(fmt, names[v]);
 	}
