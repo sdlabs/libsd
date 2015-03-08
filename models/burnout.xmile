@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<xmile xmlns="http://www.systemdynamics.org/XMILE" version="1.0" level="3">
+    <header>
+        <smile version="1.0"></smile>
+        <name></name>
+        <uuid>280d8971-1b38-4aa5-b849-460e94a91649</uuid>
+        <vendor>SDLabs</vendor>
+        <product version="0.1">go-xmile</product>
+    </header>
+    <sim_specs time_units="time">
+        <start>0</start>
+        <stop>100</stop>
+        <dt>0.25</dt>
+    </sim_specs>
+    <dimensions></dimensions>
+    <model_units></model_units>
+    <equation_prefs order_by=""></equation_prefs>
+    <model>
+        <variables>
+            <stock name="Burnout">
+                <eqn>0 </eqn>
+                <inflow>burning_out</inflow>
+                <outflow>recovering</outflow>
+            </stock>
+            <aux name="effect_of\nburnout_on\nproductivity">
+                <eqn>1 - Burnout </eqn>
+            </aux>
+            <aux name="base\nproductivity">
+                <eqn>40 </eqn>
+            </aux>
+            <aux name="productivity">
+                <eqn>MAX( 0 , base_productivity * effect_of_burnout_on_productivity ) </eqn>
+            </aux>
+            <aux name="workload">
+                <eqn>TIME </eqn>
+                <gf discrete="false">
+                    <xpts>0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100</xpts>
+                    <ypts>0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75,0.75506329113924053,0.76012658227848107,0.76518987341772149,0.77025316455696202,0.77721518987341776,0.78417721518987338,0.79066455696202531,0.79715189873417724,0.80363924050632907,0.82911392405063289,0.83333333333333337,0.83755274261603374,0.86075949367088611,0.87341772151898733,1.4715189873417722,1.5411392405063291,1.5886075949367089,1.5886075949367089,1.5791139240506329,1.5717299578059072,1.5643459915611815,1.5545886075949367,1.5448312236286919,1.5350738396624473,1.5294699367088609,1.5238660337552743,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.810126582278481,0.80886075949367087,0.80759493670886073,0.8063291139240506,0.80506329113924047,0.80291139240506326,0.80075949367088606,0.79860759493670885,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.79113924050632911,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378,0.78797468354430378</ypts>
+                    <xscale min="0" max="0"></xscale>
+                    <yscale min="0" max="2"></yscale>
+                </gf>
+            </aux>
+            <stock name="Work_Completed">
+                <eqn>0 </eqn>
+                <non_negative></non_negative>
+                <inflow>doing_work</inflow>
+            </stock>
+            <flow name="doing_work">
+                <eqn>productivity * workload </eqn>
+                <non_negative></non_negative>
+            </flow>
+            <flow name="burning_out">
+                <eqn>MAX( 0 , workload - workload_level_above_which_burnout_starts ) * burnout_rate </eqn>
+            </flow>
+            <aux name="recovery_rate">
+                <eqn>.07 </eqn>
+            </aux>
+            <flow name="recovering">
+                <eqn>MAX( 0 , workload_level_above_which_burnout_starts - workload ) * Burnout * recovery_rate </eqn>
+                <non_negative></non_negative>
+            </flow>
+            <aux name="burnout_rate">
+                <eqn>.14 </eqn>
+            </aux>
+            <aux name="workload_level\nabove_which\nburnout_starts">
+                <eqn>.9 </eqn>
+            </aux>
+        </variables>
+        <views>
+            <view scroll_x="64" scroll_y="29.5" zoom="200" page_width="576" page_height="768">
+                <connector x="405.25" y="163.25" color="#FF007F" uid="1">
+                    <from>Burnout</from>
+                    <to>effect_of_burnout_on_productivity</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="177" y="83.5" color="#FF007F" uid="2">
+                    <from>base_productivity</from>
+                    <to>productivity</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="290.75" y="57.75" color="#FF007F" uid="3">
+                    <from>effect_of_burnout_on_productivity</from>
+                    <to>productivity</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="412.5" y="328.25" color="#FF007F" uid="4">
+                    <from>workload</from>
+                    <to>doing_work</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="227" y="150.75" color="#FF007F" uid="5">
+                    <from>productivity</from>
+                    <to>doing_work</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="416.5" y="323.25" color="#FF007F" uid="6">
+                    <from>workload</from>
+                    <to>burning_out</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="527.5" y="241.25" color="#FF007F" uid="7">
+                    <from>recovery_rate</from>
+                    <to>recovering</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="329.5" y="232.75" color="#FF007F" uid="8">
+                    <from>burnout_rate</from>
+                    <to>burning_out</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="415.5" y="242.25" color="#FF007F" uid="9">
+                    <from>workload_level_above_which_burnout_starts</from>
+                    <to>burning_out</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="433.25" y="162.25" color="#FF007F" uid="10">
+                    <from>Burnout</from>
+                    <to>recovering</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="425.5" y="322.25" color="#FF007F" uid="11">
+                    <from>workload</from>
+                    <to>recovering</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <connector x="426.5" y="241.25" color="#FF007F" uid="12">
+                    <from>workload_level_above_which_burnout_starts</from>
+                    <to>recovering</to>
+                    <font-color x="0" y="0"></font-color>
+                </connector>
+                <stock x="427.25" y="179.25" name="Burnout" label_side="bottom"></stock>
+                <aux x="297.75" y="51.75" name="effect_of\nburnout_on\nproductivity" label_side="right"></aux>
+                <aux x="173" y="75.5" name="base\nproductivity"></aux>
+                <aux x="228" y="141.75" name="productivity"></aux>
+                <aux x="421.5" y="330.25" name="workload"></aux>
+                <stock x="129" y="284.25" name="Work_Completed" label_side="bottom"></stock>
+                <flow x="211.5" y="284.25" name="doing_work">
+                    <pts>
+                        <pt x="271.5" y="284.25"></pt>
+                        <pt x="151.5" y="284.25"></pt>
+                    </pts>
+                </flow>
+                <flow x="355" y="179.25" name="burning_out">
+                    <pts>
+                        <pt x="305.25" y="179.25"></pt>
+                        <pt x="404.75" y="179.25"></pt>
+                    </pts>
+                </flow>
+                <aux x="532.5" y="248.25" name="recovery_rate"></aux>
+                <flow x="479.625" y="179.25" name="recovering">
+                    <pts>
+                        <pt x="449.75" y="179.25"></pt>
+                        <pt x="533.5" y="179.25"></pt>
+                    </pts>
+                </flow>
+                <aux x="323.5" y="239.75" name="burnout_rate"></aux>
+                <aux x="421.5" y="248.25" name="workload_level\nabove_which\nburnout_starts"></aux>
+            </view>
+            <view name="interface" scroll_x="0" scroll_y="0" zoom="0" page_width="800" page_height="600">
+                <pages show="false" row_count="0" column_count="0" home_page="0"></pages>
+            </view>
+        </views>
+    </model>
+</xmile>
