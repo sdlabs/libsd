@@ -24,7 +24,8 @@ typedef enum {
 	SD_ERR_BAD_XML     = -4,
 	SD_ERR_BAD_LEX     = -5,
 	SD_ERR_EOF         = -6,
-	SD_ERR_MIN         = -7
+	SD_ERR_CIRCULAR    = -7,
+	SD_ERR_MIN         = -8
 } SDErrorEnum;
 
 typedef struct SDProject_s SDProject;

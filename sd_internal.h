@@ -155,12 +155,9 @@ struct AVar_s {
 	// direct dependency, because the stock's value is calculated
 	// in a prior simulation phase.
 	Slice direct_deps;
-	Slice all_deps;
-	bool have_all_deps;
-	bool is_const;
 
 	// TODO: using a tagged union would shrink this structure, but
-	// IDK if it is worth it.
+	// it doesn't seem worth it at this point
 
 	// only stocks have inflows + outflows
 	Slice inflows;
@@ -178,6 +175,10 @@ struct AVar_s {
 	AVar *src; // for ref
 
 	int offset;
+
+	bool is_const;
+	bool visited;
+	bool visiting;
 };
 
 struct SDSim_s {

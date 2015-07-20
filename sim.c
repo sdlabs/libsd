@@ -27,8 +27,6 @@ static double rt_min(SDSim *s, Node *n, double dt, double t, size_t len, double 
 static double rt_max(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
 
-static int cmp_avar(const void *a_in, const void *b_in);
-
 static double *sim_curr(SDSim *s);
 static double *sim_next(SDSim *s);
 
@@ -41,6 +39,9 @@ static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
 static int module_assign_offsets(AVar *module, int *offset);
 static int module_get_varnames(AVar *module, const char **result, size_t max);
+static void module_clear_visited(AVar *module);
+static int module_sort_runlists(AVar *module);
+static int module_add_to_runlists(AVar *module, AVar *av);
 
 static const char *avar_qual_name(AVar *av);
 
@@ -283,7 +284,6 @@ avar_init(AVar *av, AVar *module)
 
 	return SD_ERR_NO_ERROR;
 error:
-	printf("error for %s\n", av->v->name);
 	avar_walker_unref(w);
 	return SD_ERR_UNSPECIFIED;
 }
@@ -303,7 +303,6 @@ avar_free(AVar *av)
 	free(av->qual_name);
 	node_free(av->node);
 	free(av->direct_deps.elems);
-	free(av->all_deps.elems);
 	free(av->inflows.elems);
 	free(av->outflows.elems);
 	free(av->initials.elems);
@@ -407,40 +406,9 @@ resolve(AVar *module, const char *name)
 }
 
 int
-cmp_avar(const void *a_in, const void *b_in)
-{
-	const AVar *a = *(AVar *const *)a_in;
-	const AVar *b = *(AVar *const *)b_in;
-	int result = 0;
-	for (size_t i = 0; i < b->all_deps.len; i++) {
-		if (a == b->all_deps.elems[i]) {
-			result = -1;
-			break;
-		}
-	}
-	if (result == 0) {
-		for (size_t i = 0; i < a->all_deps.len; i++) {
-			if (b == a->all_deps.elems[i]) {
-				result = 1;
-				break;
-			}
-		}
-	}
-	// order stocks last in initial list
-	if (result == 0) {
-		if (a->v->type == VAR_STOCK && b->v->type != VAR_STOCK)
-			result = 1;
-		else if (a->v->type != VAR_STOCK && b->v->type == VAR_STOCK)
-			result = -1;
-	}
-	return result;
-}
-
-int
 module_compile(AVar *module)
 {
 	AVar *av;
-	size_t off;
 	int err, failed;
 
 	failed = 0;
@@ -453,59 +421,16 @@ module_compile(AVar *module)
 	if (failed)
 		return SD_ERR_UNSPECIFIED;
 
-	// TODO: do init on demand from all_deps, so we don't need two
-	// iterations.  Maybe.  this keeps this pretty simple as is.
 	for (size_t i = 0; i < module->avars.len; i++) {
 		av = module->avars.elems[i];
 		// TODO: fix for multiple levels of indirection.
 		if (av->v->type == VAR_REF)
 			av->offset = av->src->offset;
-		err = avar_all_deps(av, NULL);
-		if (err)
-			return err;
 	}
 
-	if (!module->parent)
-		off = 1;
-	else
-		off = 0;
+	// sorting of runlists is done in a separate step after
+	// offsets are assigned.
 
-	for (size_t i = off; i < module->avars.len; i++) {
-		AVar *sub = module->avars.elems[i];
-		if (sub->v->type == VAR_MODULE) {
-			slice_append(&module->initials, sub);
-			slice_append(&module->flows, sub);
-			slice_append(&module->stocks, sub);
-		} else if (sub->v->type == VAR_STOCK) {
-			slice_append(&module->initials, sub);
-			slice_append(&module->stocks, sub);
-		// refs are not simulated
-		} else if (sub->v->type != VAR_REF) {
-			slice_append(&module->initials, sub);
-			if (sub->is_const)
-				slice_append(&module->stocks, sub);
-			else
-				slice_append(&module->flows, sub);
-		}
-	}
-
-	return SD_ERR_NO_ERROR;
-}
-
-int
-avar_all_deps(AVar *av, Slice *all)
-{
-	if (!av->have_all_deps) {
-		av->have_all_deps = true;
-		slice_extend(&av->all_deps, &av->direct_deps);
-		for (size_t i = 0; i < av->direct_deps.len; i++) {
-			AVar *dep = av->direct_deps.elems[i];
-			avar_all_deps(dep, &av->all_deps);
-		}
-	}
-	if (all) {
-		slice_extend(all, &av->all_deps);
-	}
 	return SD_ERR_NO_ERROR;
 }
 
@@ -543,11 +468,9 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (err)
 		goto error;
 
-	// at this point each model knows its dependencies.  we can
-	// sort the 3 run lists.
-	qsort(sim->module->initials.elems, sim->module->initials.len, sizeof(AVar *), cmp_avar);
-	qsort(sim->module->flows.elems, sim->module->flows.len, sizeof(AVar *), cmp_avar);
-	qsort(sim->module->stocks.elems, sim->module->stocks.len, sizeof(AVar *), cmp_avar);
+	err = module_sort_runlists(sim->module);
+	if (err)
+		goto error;
 
 	sim->nvars = offset;
 	err = sd_sim_reset(sim);
@@ -577,6 +500,90 @@ module_assign_offsets(AVar *module, int *offset)
 			av->offset = (*offset)++;
 		}
 	}
+
+	return 0;
+}
+
+int module_add_to_runlists(AVar *module, AVar *av)
+{
+	if (av->visited)
+		return 0;
+
+	// TODO: better circularity error reporting
+	if (av->visiting)
+		return SD_ERR_CIRCULAR;
+
+	av->visiting = true;
+
+	// make sure any of our dependencies are on runlists before
+	// us.
+	for (size_t i = 0; i < av->direct_deps.len; i++) {
+		AVar *dep = av->direct_deps.elems[i];
+		int err;
+
+		if (dep->visited)
+			continue;
+
+		err = module_add_to_runlists(module, dep);
+		if (err)
+			return err;
+	}
+
+	if (av->v->type == VAR_MODULE) {
+		slice_append(&module->initials, av);
+		slice_append(&module->flows, av);
+		slice_append(&module->stocks, av);
+	} else if (av->v->type == VAR_STOCK) {
+		slice_append(&module->initials, av);
+		slice_append(&module->stocks, av);
+		// refs are not simulated
+	} else if (av->v->type != VAR_REF) {
+		slice_append(&module->initials, av);
+		if (av->is_const)
+			slice_append(&module->stocks, av);
+		else
+			slice_append(&module->flows, av);
+	}
+
+	av->visited = true;
+	av->visiting = false;
+
+	return 0;
+}
+
+int
+module_sort_runlists(AVar *module)
+{
+	int off;
+
+	module_clear_visited(module);
+
+	module->visiting = true;
+
+	if (!module->parent)
+		off = 1;
+	else
+		off = 0;
+
+	for (size_t i = off; i < module->avars.len; i++) {
+		AVar *sub = module->avars.elems[i];
+		int err;
+
+		if (sub->visited)
+			continue;
+
+		if (sub->v->type == VAR_MODULE) {
+			err = module_sort_runlists(sub);
+			if (err)
+				return err;
+		}
+
+		err = module_add_to_runlists(module, sub);
+		if (err)
+			return err;
+	}
+
+	module->visiting = false;
 
 	return 0;
 }
@@ -635,7 +642,6 @@ calc(SDSim *s, double *data, Slice *l, bool initial)
 		double v = svisit(s, av->node, dt, data[0]);
 		if (av->v->gf)
 			v = lookup(av->v->gf, v);
-		//printf("\t%s\t%f\n", av->v->name, v);
 		data[av->offset] = v;
 	}
 }
@@ -659,14 +665,13 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 			v = 0;
 			for (size_t i = 0; i < av->inflows.len; i++) {
 				AVar *in = av->inflows.elems[i];
-				v += svisit(s, in->node, dt, s->curr[0]);
+				v += s->curr[in->offset];
 			}
 			for (size_t i = 0; i < av->outflows.len; i++) {
 				AVar *out = av->outflows.elems[i];
-				v -= svisit(s, out->node, dt, s->curr[0]);
+				v -= s->curr[out->offset];
 			}
 			data[av->offset] = prev + v*dt;
-			//printf("\t%s\t%f\n", av->v->name, prev + v*dt);
 			break;
 		case VAR_MODULE:
 			calc_stocks(s, data, &av->stocks);
@@ -902,6 +907,22 @@ module_get_varnames(AVar *module, const char **result, size_t max)
 		}
 	}
 	return result-start;
+}
+
+void
+module_clear_visited(AVar *module)
+{
+	for (size_t i = 0; i < module->avars.len; i++) {
+		AVar *av = module->avars.elems[i];
+		if (av->model) {
+			module_clear_visited(av);
+		} else {
+			av->visited = false;
+			av->visiting = false;
+		}
+	}
+	module->visited = false;
+	module->visiting = false;
 }
 
 int

@@ -24,13 +24,14 @@ static void file_free(File *f);
 
 
 static const char *SD_ERROR_MSGS[] = {
-	"no error", // SD_ERR_NO_ERROR
-	"no memory", // SD_ERR_NOMEM
-	"bad file", // SD_ERR_BAD_FILE
+	"no error",          // SD_ERR_NO_ERROR
+	"no memory",         // SD_ERR_NOMEM
+	"bad file",          // SD_ERR_BAD_FILE
 	"unspecified error", // SD_ERR_UNSPECIFIED
-	"bad XML", // SD_ERR_BAD_XML
-	"bad equation lex", // SD_ERR_BAD_LEX
-	"EOF", // SD_ERR_EOF
+	"bad XML",           // SD_ERR_BAD_XML
+	"bad equation lex",  // SD_ERR_BAD_LEX
+	"EOF",               // SD_ERR_EOF
+	"circularity error", // SD_ERR_CIRCULAR
 };
 
 
