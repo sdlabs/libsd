@@ -116,6 +116,10 @@ avar_qual_name(AVar *av)
 	if (av->qual_name)
 		return av->qual_name;
 
+	// if we _are_ the root model, return <main>
+	if (!av->parent)
+		return "<main>";
+
 	// if we're in the root model, return the var's name
 	if (av->parent->parent == NULL)
 		return av->v->name;
@@ -882,29 +886,22 @@ sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
 int
 module_get_varnames(AVar *module, const char **result, size_t max)
 {
-	size_t i, n, skipped, children;
+	const char **start = result;
 
-	i = 0;
-	children = 0;
-	skipped = 0;
-
-	for (i = 0; i < module->avars.len && max > 0; i++) {
+	for (size_t i = 0; i < module->avars.len && max > 0; i++) {
 		AVar *av = module->avars.elems[i];
 		if (av->model) {
-			n = module_get_varnames(av, result, max);
-			children += n;
+			size_t n = module_get_varnames(av, result, max);
 			result += n;
 			max -= n;
-			skipped++;
 		} else if (!av->src) {
 			// only include non-ghosts in output
-			result[i-skipped] = avar_qual_name(av);
+			*result = avar_qual_name(av);
+			result++;
 			max--;
-		} else {
-			skipped++;
 		}
 	}
-	return (int)(i + children - skipped);
+	return result-start;
 }
 
 int
