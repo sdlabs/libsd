@@ -95,14 +95,14 @@ main(int argc, char *const argv[])
 		die("out of memory\n");
 
 	if (sd_sim_get_varnames(s, names, nvars) != nvars)
-		die("get_varnames unexpected result\n");
+		die("get_varnames unexpected result != %d\n", nvars);
 
 	for (int v = 0; v < nvars; v++) {
 		Result *result = results + v;
 		result->series = calloc(nsteps, sizeof(double));
 		n = sd_sim_get_series(s, names[v], result->series, nsteps);
 		if (n != nsteps)
-			die("short series read of %d for '%s' (%d)\n", n, names[v], v);
+			die("short series read of %d for '%s' (%d/%d)\n", n, names[v], v, nvars);
 		fmt = v == nvars-1 ? "%s\n" : "%s\t";
 		printf(fmt, names[v]);
 	}
