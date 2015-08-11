@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -338,15 +339,14 @@ node_builder_characters(void *data, const char *contents, int len)
 	} else {
 		size_t content_len = nb->content_len;
 		// +2 for ' ' and trailing NULL
-		nb->content = realloc(nb->content, content_len + len + 2);
+		nb->content = realloc(nb->content, content_len + len + 1);
 		if (!nb->content) {
 			// FIXME(bp) handle ENOMEM
 			return;
 		}
-		nb->content[content_len] = ' ';
-		memcpy(&nb->content[content_len+1], contents, len);
-		nb->content[content_len+len+1] = '\0';
-		nb->content_len += len+1;
+		memcpy(&nb->content[content_len], contents, len);
+		nb->content[content_len+len] = '\0';
+		nb->content_len += len;
 	}
 }
 
@@ -612,24 +612,27 @@ table_from_node_builder(NodeBuilder *nb)
 	mem = calloc(1, round_up(sizeof(Table), 8) + 2*n*sizeof(double));
 	if (!mem)
 		return NULL; // TODO(bp) handle ENOMEM
+
 	t = mem;
 	t->len = n;
 	t->x = (double *)((char *)mem + round_up(sizeof(Table), 8));
 	t->y = (double *)((char *)mem + round_up(sizeof(Table), 8) + n*sizeof(double));
 
+	errno = 0;
 	pts = ypts->content;
 	for (size_t i = 0; i < t->len; i++) {
 		t->y[i] = strtod(pts, &pts);
-		if (*pts && *pts != ',')
+		if (errno == ERANGE || (*pts && *pts != ','))
 			goto error;
 		pts++;
 	}
 
 	if (xpts) {
+		errno = 0;
 		pts = xpts->content;
 		for (size_t i = 0; i < t->len; i++) {
 			t->x[i] = strtod(pts, &pts);
-			if (*pts && *pts != ',')
+			if (errno == ERANGE || (*pts && *pts != ','))
 				goto error;
 			pts++;
 		}
