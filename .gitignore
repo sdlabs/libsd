@@ -4,6 +4,7 @@
 /mdl
 /mdl.exe
 *.o
+*.d
 *.test
 *.lo
 *.la
