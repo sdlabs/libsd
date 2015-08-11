@@ -70,7 +70,7 @@ coverage: check
 	cd out; $(LCOV) --directory .. --capture --output-file app.info && $(GENHTML) app.info
 
 clean:
-	rm -f $(LIB) *.o $(TESTS) $(EXE) *.gcda *.gcno
+	rm -f $(LIB) *.o $(TESTS) $(EXE) *.gcda *.gcno *.d
 	rm -rf out
 	$(MAKE) -C libutf clean
 	$(MAKE) -C expat clean
