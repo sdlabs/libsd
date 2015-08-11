@@ -9,8 +9,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-// intptr_t
-#include <unistd.h>
+#include <unistd.h> // intptr_t
 
 #include "sd.h"
 #include "sd_internal.h"

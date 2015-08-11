@@ -2,11 +2,11 @@ VERSION = 0.1.0
 
 PREFIX = /usr/local
 
-WARNFLAGS := -pedantic -Wvariadic-macros \
-             -Wformat -Wall -Wextra -Wundef -Wpointer-arith \
-             -Wcast-qual -Wwrite-strings -Wsign-compare \
-             -Wstrict-aliasing=2 -Wno-unused-parameter \
-             -Werror
+WARNFLAGS := \
+        -Werror \
+        -Wall -Wextra -pedantic \
+        -Wundef \
+        -Wno-unused-parameter
 
 INCS := -Ilibutf -Iexpat/lib
 
