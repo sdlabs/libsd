@@ -9,6 +9,9 @@ import re
 import subprocess
 import sys
 
+# these columns are either Vendor specific or otherwise not important.
+IGNORABLE_COLS = ('saveper',)
+
 # from rainbow
 def make_reporter(verbosity, quiet, filelike):
     if not quiet:
@@ -134,25 +137,20 @@ def compare(reference, simulated):
     err = False
     for i in range(steps):
         for n, series in list(reference.items()):
+            if n not in simulated:
+                if n in IGNORABLE_COLS:
+                    continue
+                log(ERROR, 'missing column %s in second file', n)
+                break
             if len(reference[n]) != len(simulated[n]):
                 log(ERROR, 'len mismatch for %s (%d vs %d)',
                     n, len(reference[n]), len(simulated[n]))
                 err = True
                 break
-            ref = series[i]
-            sim = simulated[n][i]
-            if float(ref) == float(sim):
-                continue
-            if '.' in ref and '.' in sim and len(ref) != len(sim):
-                ref_dec = ref.split('.')[1]
-                sim_dec = sim.split('.')[1]
-                decimals = min(len(ref_dec), len(sim_dec))
-                ref = round(float(ref), decimals)
-                sim = round(float(sim), decimals)
-            else:
-                ref = float(ref)
-                sim = float(sim)
-            if not isclose(ref, sim, rel_tol=1e-5):
+            ref = float(series[i])
+            sim = float(simulated[n][i])
+            around_zero = isclose(ref, 0, abs_tol=1e-06) and isclose(sim, 0, abs_tol=1e-06)
+            if not around_zero and not isclose(ref, sim, rel_tol=1e-4):
                 log(ERROR, 'time %s mismatch in %s (%s != %s)', time[i], n, ref, sim)
                 err = True
 
