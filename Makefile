@@ -32,9 +32,11 @@ all: check $(EXE)
 	$(CC) $(CFLAGS) -MMD -o $@ -c $<
 
 sd.test: test_sd.o $(LIB) $(HEADERS)
+	@echo "  LD    $@"
 	$(CC) -o $@ test_sd.o $(LIB) $(LDFLAGS)
 
 $(EXE): mdl.o $(LIB) $(HEADERS)
+	@echo "  LD    $@"
 	$(CC) -o $@ mdl.o $(LIB) $(LDFLAGS)
 
 *.o: config.mk Makefile $(HEADERS)
@@ -60,6 +62,7 @@ install: $(LIB) $(EXE)
 	install -c -m 0755 $(EXE) $(PREFIX)/bin/$(EXE)
 
 check: $(TESTS)
+	@echo "  TEST  $(TESTS)"
 	$(LCOV) --directory . --zerocounters 2>/dev/null
 	./$(TESTS)
 
