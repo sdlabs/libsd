@@ -570,9 +570,9 @@ var_from_node_builder(NodeBuilder *nb)
 	for (size_t i = 0; i < nb->children.len; i++) {
 		NodeBuilder *child = nb->children.elems[i];
 		if (strcmp(child->name, "inflow") == 0 && child->content)
-			slice_append(&v->inflows, strdup(child->content));
+			slice_append(&v->inflows, normalize_name(child->content));
 		if (strcmp(child->name, "outflow") == 0 && child->content)
-			slice_append(&v->outflows, strdup(child->content));
+			slice_append(&v->outflows, normalize_name(child->content));
 		if (strcmp(child->name, "non_negative") == 0)
 			v->is_nonneg = true;
 		if (strcmp(child->name, "gf") == 0)

@@ -301,7 +301,7 @@ numstart(Rune r)
 bool
 identstart(Rune r)
 {
-	return !numstart(r) && (isalpharune(r) || r == '_');
+	return !numstart(r) && (isalpharune(r) || r == '_' || r == '"');
 }
 
 int
@@ -359,7 +359,12 @@ int
 lex_ident(Lexer *l, Token *t)
 {
 	Rune r;
+	bool quoted = l->peek == '"';
 	int pos = l->pos;
+
+	// Eat opening "
+	if (quoted)
+		nextrune(l);
 
 	while ((r = nextrune(l))) {
 		if (isalpharune(r))
@@ -368,6 +373,16 @@ lex_ident(Lexer *l, Token *t)
 			continue;
 		if (r >= '0' && r <= '9')
 			continue;
+		if (quoted) {
+			if (r == '"') {
+				// Eat closing "
+				nextrune(l);
+				break;
+			}
+			if (isspacerune(r))
+				continue;
+			// TODO: check for escape sequences
+		}
 		break;
 	}
 
@@ -613,7 +628,7 @@ ident(Parser *p, Node **n)
 	// FIXME(bp) no mem
 	if (!x)
 		goto error;
-	x->sval = strdup(t.start);
+	x->sval = normalize_name(t.start);
 	*n = x;
 	ok = true;
 error:

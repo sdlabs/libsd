@@ -208,15 +208,21 @@ char *
 normalize_name(const char *n)
 {
 	char *result;
+	size_t len = strlen(n);
+	bool quoted = len > 0 && n[0] == '"' && n[len-1] == '"';
+	int off = quoted ? 1 : 0;
 
-	result = strdup(n);
+	result = strndup(n+off, len - 2*off);
 	if (!result)
 		return NULL;
 	utf8_tolower(&result);
 	// FIXME: be more efficient
+	strrepl(result, "\\\\", "\\");
 	strrepl(result, "\\n", "_");
 	strrepl(result, "\\r", "_");
 	strrepl(result, "\n", "_");
 	strrepl(result, "\r", "_");
+	strrepl(result, " ", "_");
+	// FIXME: nbsp - 00A0 / C2A0
 	return result;
 }

@@ -28,6 +28,7 @@ static void test_round_up(void);
 static void test_lex(void);
 static void test_table(void);
 static void test_parse2(void);
+static void test_normalize_quoted(void);
 
 typedef void (*test_f)(void);
 
@@ -43,6 +44,7 @@ static test_f TESTS[] = {
 	test_lex,
 	test_table,
 	test_parse2,
+	test_normalize_quoted,
 };
 
 int
@@ -705,6 +707,11 @@ static const LexTestData LEX_TESTS[] = {
 		{"1e3", TOK_NUMBER},
 		{")", TOK_TOKEN},
 	}},
+	{"\"hares\" * \"birth fraction\"", {
+		{"\"hares\"", TOK_IDENT},
+		{"*", TOK_TOKEN},
+		{"\"birth fraction\"", TOK_IDENT},
+	}},
 };
 
 void
@@ -1098,4 +1105,18 @@ test_parse2(void)
 
 	// dont segfault
 	node_walk(NULL, NULL);
+}
+
+void
+test_normalize_quoted(void)
+{
+	char *normalized;
+
+	normalized = normalize_name("a b");
+	if (strcmp(normalized, "a_b") != 0)
+		die("normalize '%s' != '%s'\n", normalized, "a_b");
+
+	normalized = normalize_name("\"a b\"");
+	if (strcmp(normalized, "a_b") != 0)
+		die("normalize '%s' != '%s'\n", normalized, "a_b");
 }
