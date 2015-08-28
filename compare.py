@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import cmath
 import csv
@@ -123,7 +123,7 @@ def e_name(n):
     return NAME_RE.sub('_', n)
 
 def read_data(data):
-    ins = data.lower().split('\n')
+    ins = data.lower().splitlines()
     ins[0] = e_name(ins[0].strip())
     if ',' in ins[0]:
         delimiter = ','

@@ -126,7 +126,7 @@ def e_name(n):
     return NAME_RE.sub('_', n)
 
 def read_data(data):
-    ins = data.lower().split('\n')
+    ins = data.lower().splitlines()
     ins[0] = e_name(ins[0].strip())
     if ',' in ins[0]:
         delimiter = ','
@@ -210,7 +210,7 @@ def main():
                 if err:
                     log(ERROR, '%s failed: %s', args.CMD, err_out)
                     continue
-                sim = read_data(mdata)
+                sim = read_data(mdata.decode('utf-8'))
                 output_path = os.path.join(model_dir, OUTPUT_FILE)
                 ref = read_data(slurp(output_path))
                 err |= compare(ref, sim, display_limit=args.limit)
