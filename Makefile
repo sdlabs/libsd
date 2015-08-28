@@ -73,7 +73,7 @@ check: $(TESTS) $(EXE) $(RTEST_FILE)
 	@echo "  TEST  $(TESTS)"
 	$(LCOV) --directory . --zerocounters 2>/dev/null
 	./$(TESTS)
-	./regression-tests.py ./$(EXE) $(RTEST_DIR)
+	./regression-test.py ./$(EXE) $(RTEST_DIR)
 
 coverage: check
 	mkdir -p out
