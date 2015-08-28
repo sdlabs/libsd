@@ -114,7 +114,7 @@ def load_csv(f, delimiter=','):
         series[result[i][0]] = result[i][1:]
     return series
 
-NAME_RE = re.compile('\s+')
+NAME_RE = re.compile(' +')
 
 def e_name(n):
     return NAME_RE.sub('_', n)
@@ -149,6 +149,9 @@ def compare(reference, simulated):
                 decimals = min(len(ref_dec), len(sim_dec))
                 ref = round(float(ref), decimals)
                 sim = round(float(sim), decimals)
+            else:
+                ref = float(ref)
+                sim = float(sim)
             if not isclose(ref, sim, rel_tol=1e-5):
                 log(ERROR, 'time %s mismatch in %s (%s != %s)', time[i], n, ref, sim)
                 err = True
