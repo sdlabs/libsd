@@ -1,5 +1,6 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
+import argparse
 import cmath
 import csv
 import os
@@ -9,9 +10,10 @@ import re
 import subprocess
 import sys
 
-CMD = './mdl'
-BASE = 'test/compat'
-EXTS = ['xmile']  #, 'stmx', 'itmx', 'STMX', 'ITMX', 'mdl', 'MDL']
+OUTPUT_FILE = 'output.csv'
+
+# these columns are either Vendor specific or otherwise not important.
+IGNORABLE_COLS = ('saveper',)
 
 # from rainbow
 def make_reporter(verbosity, quiet, filelike):
@@ -100,15 +102,6 @@ def isclose(a,
         raise ValueError('method must be one of:'
                          ' "asymmetric", "strong", "weak", "average"')
 
-def run_cmd(cmd):
-    '''
-    Runs a shell command, waits for it to complete, and returns stdout.
-    '''
-    call = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    out, err = call.communicate()
-    return (call.returncode, out, err)
-
 def slurp(file_name):
     with open(file_name, 'r') as f:
         return f.read().strip()
@@ -116,7 +109,7 @@ def slurp(file_name):
 def load_csv(f, delimiter=','):
     result = []
     reader = csv.reader(f, delimiter=delimiter)
-    header = reader.next()
+    header = next(reader)
     for i in range(len(header)):
         result.append([header[i]])
     for row in reader:
@@ -127,55 +120,102 @@ def load_csv(f, delimiter=','):
         series[result[i][0]] = result[i][1:]
     return series
 
-def read_data(path):
-    with open(path, 'r') as f:
-        return load_csv(f.read().lower().split('\n'))
-
-NAME_RE = re.compile('\s+')
+NAME_RE = re.compile(' +')
 
 def e_name(n):
     return NAME_RE.sub('_', n)
 
-def compare(reference, simulated):
+def read_data(data):
+    ins = data.lower().split('\n')
+    ins[0] = e_name(ins[0].strip())
+    if ',' in ins[0]:
+        delimiter = ','
+    else:
+        delimiter = '\t'
+    return load_csv(ins, delimiter)
+
+def compare(reference, simulated, display_limit=-1):
+    '''
+    Compare 2 
+    '''
     time = reference['time']
     steps = len(time)
     err = False
+    displayed = 0
     for i in range(steps):
-        for ref_n, series in reference.items():
-            n = e_name(ref_n)
-            if len(reference[ref_n]) != len(simulated[n]):
-                log(ERROR, 'len mismatch for %s (%d vs %d)',
-                    n, len(reference[ref_n]), len(simulated[n]))
+        for n, series in list(reference.items()):
+            if n not in simulated:
+                if n in IGNORABLE_COLS:
+                    continue
+                log(ERROR, 'missing column %s in second file', n)
+                break
+            if len(reference[n]) != len(simulated[n]):
+                if display_limit >= 0 and displayed < display_limit:
+                    log(ERROR, 'len mismatch for %s (%d vs %d)',
+                        n, len(reference[n]), len(simulated[n]))
+                    displayed += 1
                 err = True
                 break
-            ref = series[i]
-            sim = simulated[n][i]
-            if float(ref) == float(sim):
-                continue
-            if '.' in ref and '.' in sim and len(ref) != len(sim):
-                ref_dec = ref.split('.')[1]
-                sim_dec = sim.split('.')[1]
-                decimals = min(len(ref_dec), len(sim_dec))
-                ref = round(float(ref), decimals)
-                sim = round(float(sim), decimals)
-            if not isclose(ref, sim):
-                log(ERROR, 'time %s mismatch in %s (%s != %s)', time[i], n, ref, sim)
+            ref = float(series[i])
+            sim = float(simulated[n][i])
+            around_zero = isclose(ref, 0, abs_tol=1e-06) and isclose(sim, 0, abs_tol=1e-06)
+            if not around_zero and not isclose(ref, sim, rel_tol=1e-4):
+                if display_limit >= 0 and displayed < display_limit:
+                    log(ERROR, 'time %s mismatch in %s (%s != %s)', time[i], n, ref, sim)
+                    displayed += 1
                 err = True
+    return err
+
+def run_cmd(cmd):
+    '''
+    Runs a shell command, waits for it to complete, and returns stdout.
+    '''
+    call = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    out, err = call.communicate()
+    return (call.returncode, out, err)
 
 def main():
-    for model in os.listdir(BASE):
-        for mpath in [os.path.join(BASE, model, 'model.' + ext) for ext in EXTS]:
-            if not os.access(mpath, os.R_OK):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-e', '--ext', default='xmile',
+                        help='file extension of model to test, such as xmile or mdl')
+    parser.add_argument('-l', '--limit', default=10, type=int,
+                        help='number of lines of comparison errors to display per model, negative to disable')
+    parser.add_argument('CMD', help='command to run that will output model results to stdout')
+    parser.add_argument('DIR', help='path to test-models directory')
+    args = parser.parse_args()
+
+    model_suffix = '.' + args.ext
+
+    err = False
+
+    # test-models has directories that are 2-levels deep
+    for outer in os.listdir(args.DIR):
+        outer_path = os.path.join(args.DIR, outer)
+        if outer_path.startswith('.') or not os.path.isdir(outer_path):
+            continue
+
+        for inner in os.listdir(outer_path):
+            model_dir = os.path.join(outer_path, inner)
+            if not os.path.isdir(model_dir):
                 continue
-            log(DEBUG, 'testing %s', model)
-            err, mdata, err_out = run_cmd('%s %s' % (CMD, mpath))
-            if err:
-                log(ERROR, '%s failed: %s', CMD, err_out)
-                break
-            simulated = load_csv(mdata.lower().split('\n'), '\t')
-            dpath = os.path.join(BASE, model, 'data.csv')
-            reference = read_data(dpath)
-            compare(reference, simulated)
-            break
+
+            for f in os.listdir(model_dir):
+                model_path = os.path.join(model_dir, f)
+                if not model_path.endswith(model_suffix):
+                    continue
+
+                log(DEBUG, '  RTEST %s/%s/%s', outer, inner, f)
+                err, mdata, err_out = run_cmd('%s %s' % (args.CMD, model_path))
+                if err:
+                    log(ERROR, '%s failed: %s', args.CMD, err_out)
+                    continue
+                sim = read_data(mdata)
+                output_path = os.path.join(model_dir, OUTPUT_FILE)
+                ref = read_data(slurp(output_path))
+                err |= compare(ref, sim, display_limit=args.limit)
+
+    return err
+
 if __name__ == '__main__':
     exit(main())

@@ -61,10 +61,11 @@ install: $(LIB) $(EXE)
 	install -c -m 0644 $(LIB) $(PREFIX)/lib/$(LIB)
 	install -c -m 0755 $(EXE) $(PREFIX)/bin/$(EXE)
 
-check: $(TESTS)
+check: $(TESTS) $(EXE)
 	@echo "  TEST  $(TESTS)"
 	$(LCOV) --directory . --zerocounters 2>/dev/null
 	./$(TESTS)
+	./regression-tests.py ./$(EXE) test/test-models
 
 coverage: check
 	mkdir -p out

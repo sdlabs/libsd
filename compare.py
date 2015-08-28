@@ -122,8 +122,8 @@ NAME_RE = re.compile(' +')
 def e_name(n):
     return NAME_RE.sub('_', n)
 
-def read_data(path):
-    ins = slurp(path).lower().split('\n')
+def read_data(data):
+    ins = data.lower().split('\n')
     ins[0] = e_name(ins[0].strip())
     if ',' in ins[0]:
         delimiter = ','
@@ -155,8 +155,8 @@ def compare(reference, simulated):
                 err = True
 
 def main():
-    ref = read_data(sys.argv[1])
-    sim = read_data(sys.argv[2])
+    ref = read_data(slurp(sys.argv[1]))
+    sim = read_data(slurp(sys.argv[2]))
     compare(ref, sim)
     return
 
