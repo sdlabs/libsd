@@ -103,7 +103,7 @@ def slurp(file_name):
 def load_csv(f, delimiter=','):
     result = []
     reader = csv.reader(f, delimiter=delimiter)
-    header = reader.next()
+    header = next(reader)
     for i in range(len(header)):
         result.append([header[i]])
     for row in reader:
@@ -133,7 +133,7 @@ def compare(reference, simulated):
     steps = len(time)
     err = False
     for i in range(steps):
-        for n, series in reference.items():
+        for n, series in list(reference.items()):
             if len(reference[n]) != len(simulated[n]):
                 log(ERROR, 'len mismatch for %s (%d vs %d)',
                     n, len(reference[n]), len(simulated[n]))
