@@ -9,10 +9,6 @@ import re
 import subprocess
 import sys
 
-CMD = './mdl'
-BASE = 'test/compat'
-EXTS = ['xmile']  #, 'stmx', 'itmx', 'STMX', 'ITMX', 'mdl', 'MDL']
-
 # from rainbow
 def make_reporter(verbosity, quiet, filelike):
     if not quiet:
@@ -100,15 +96,6 @@ def isclose(a,
         raise ValueError('method must be one of:'
                          ' "asymmetric", "strong", "weak", "average"')
 
-def run_cmd(cmd):
-    '''
-    Runs a shell command, waits for it to complete, and returns stdout.
-    '''
-    call = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    out, err = call.communicate()
-    return (call.returncode, out, err)
-
 def slurp(file_name):
     with open(file_name, 'r') as f:
         return f.read().strip()
@@ -127,25 +114,29 @@ def load_csv(f, delimiter=','):
         series[result[i][0]] = result[i][1:]
     return series
 
-def read_data(path, delimiter=','):
-    with open(path, 'r') as f:
-        return load_csv(f.read().lower().split('\n'), delimiter)
-
 NAME_RE = re.compile('\s+')
 
 def e_name(n):
     return NAME_RE.sub('_', n)
+
+def read_data(path):
+    ins = slurp(path).lower().split('\n')
+    ins[0] = e_name(ins[0].strip())
+    if ',' in ins[0]:
+        delimiter = ','
+    else:
+        delimiter = '\t'
+    return load_csv(ins, delimiter)
 
 def compare(reference, simulated):
     time = reference['time']
     steps = len(time)
     err = False
     for i in range(steps):
-        for ref_n, series in reference.items():
-            n = e_name(ref_n)
-            if len(reference[ref_n]) != len(simulated[n]):
+        for n, series in reference.items():
+            if len(reference[n]) != len(simulated[n]):
                 log(ERROR, 'len mismatch for %s (%d vs %d)',
-                    n, len(reference[ref_n]), len(simulated[n]))
+                    n, len(reference[n]), len(simulated[n]))
                 err = True
                 break
             ref = series[i]
@@ -158,13 +149,13 @@ def compare(reference, simulated):
                 decimals = min(len(ref_dec), len(sim_dec))
                 ref = round(float(ref), decimals)
                 sim = round(float(sim), decimals)
-            if not isclose(ref, sim):
+            if not isclose(ref, sim, rel_tol=1e-5):
                 log(ERROR, 'time %s mismatch in %s (%s != %s)', time[i], n, ref, sim)
                 err = True
 
 def main():
-    ref = read_data(sys.argv[1], '\t')
-    sim = read_data(sys.argv[2], '\t')
+    ref = read_data(sys.argv[1])
+    sim = read_data(sys.argv[2])
     compare(ref, sim)
     return
 
