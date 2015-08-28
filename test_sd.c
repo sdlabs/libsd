@@ -616,6 +616,16 @@ static const LexTestData LEX_TESTS[] = {
 		{"else", TOK_RESERVED},
 		{"0", TOK_NUMBER},
 	}},
+	{"IF a = b THEN 1 ELSE 0", {
+		{"if", TOK_RESERVED},
+		{"a", TOK_IDENT},
+		{"=", TOK_TOKEN},
+		{"b", TOK_IDENT},
+		{"then", TOK_RESERVED},
+		{"1", TOK_NUMBER},
+		{"else", TOK_RESERVED},
+		{"0", TOK_NUMBER},
+	}},
 	{"IF a >= 1 THEN b ELSE c", {
 		{"if", TOK_RESERVED},
 		{"a", TOK_IDENT},
@@ -902,6 +912,11 @@ static const ParseTestData2 PARSE_TESTS2[] = {
 	}},
 	{"a > 1", {
 		{N_BINARY, '>', NULL},
+		{N_IDENT, 0, "a"},
+		{N_FLOATLIT, 0, "1"},
+	}},
+	{"a = 1", {
+		{N_BINARY, '=', NULL},
 		{N_IDENT, 0, "a"},
 		{N_FLOATLIT, 0, "1"},
 	}},

@@ -36,7 +36,7 @@ static const char *const BINARY[] = {
 	"^",
 	"*/",
 	"+-",
-	"><≥≤",
+	"=><≥≤",
 };
 static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
