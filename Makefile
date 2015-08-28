@@ -15,6 +15,9 @@ CONFIG = Makefile
 #TESTS_SRC = test_sd.c
 TESTS = sd.test
 
+RTEST_DIR  = test/test-models
+RTEST_FILE = test/test-models/LICENSE
+
 # quiet output, but allow us to look at what commands are being
 # executed by passing 'V=1' to make, without requiring temporarily
 # editing the Makefile.
@@ -61,11 +64,16 @@ install: $(LIB) $(EXE)
 	install -c -m 0644 $(LIB) $(PREFIX)/lib/$(LIB)
 	install -c -m 0755 $(EXE) $(PREFIX)/bin/$(EXE)
 
-check: $(TESTS) $(EXE)
+$(RTEST_FILE): $(RTEST_DIR) .gitmodules
+	@echo "  GIT   $<"
+	git submodule update --init
+	touch $@
+
+check: $(TESTS) $(EXE) $(RTEST_FILE)
 	@echo "  TEST  $(TESTS)"
 	$(LCOV) --directory . --zerocounters 2>/dev/null
 	./$(TESTS)
-	./regression-tests.py ./$(EXE) test/test-models
+	./regression-tests.py ./$(EXE) $(RTEST_DIR)
 
 coverage: check
 	mkdir -p out
