@@ -76,6 +76,10 @@ check: $(TESTS) $(EXE) $(RTEST_FILE)
 	./regression-test.py ./$(EXE) $(RTEST_DIR)
 
 coverage: check
+	./mdl 2>/dev/null || true
+	./mdl -help 2>/dev/null || true
+	./mdl --badarg 2>/dev/null || true
+	./mdl model1 model2 2>/dev/null || true
 	mkdir -p out
         # dont include unit test files in code coverage reports
 	rm -f test_*.gc*
