@@ -181,9 +181,12 @@ struct AVar_s {
 	bool visiting;
 };
 
+typedef double (*visitfn_t)(SDSim *s, Node *n, double dt, double time);
+
 struct SDSim_s {
 	SDProject *project;
 	AVar *module;
+	visitfn_t visitor;
 	SimSpec spec;
 	double *slab;
 	double *curr;

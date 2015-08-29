@@ -10,6 +10,7 @@
 #include "sd.h"
 #include "sd_internal.h"
 
+#define DEBUG false
 
 typedef struct {
 	Walker w;
@@ -33,7 +34,10 @@ static double *sim_next(SDSim *s);
 static void calc(SDSim *s, double *data, Slice *l, bool initial);
 static void calc_stocks(SDSim *s, double *data, Slice *l);
 
+// simulate
 static double svisit(SDSim *s, Node *n, double dt, double time);
+// debug
+static double dvisit(SDSim *s, Node *n, double dt, double time);
 
 static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
@@ -472,6 +476,10 @@ sd_sim_new(SDProject *p, const char *model_name)
 	if (err)
 		goto error;
 
+	sim->visitor = svisit;
+	if (DEBUG)
+	    sim->visitor = dvisit;
+
 	sim->nvars = offset;
 	err = sd_sim_reset(sim);
 	if (err)
@@ -639,7 +647,11 @@ calc(SDSim *s, double *data, Slice *l, bool initial)
 				calc(s, data, &av->flows, false);
 			continue;
 		}
-		double v = svisit(s, av->node, dt, data[0]);
+		if (DEBUG)
+			printf("F %s = ", av->v->name);
+		double v = s->visitor(s, av->node, dt, data[0]);
+		if (DEBUG)
+			printf("\n");
 		if (av->v->gf)
 			v = lookup(av->v->gf, v);
 		data[av->offset] = v;
@@ -677,7 +689,11 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 			calc_stocks(s, data, &av->stocks);
 			break;
 		default:
-			v = svisit(s, av->node, dt, s->curr[0]);
+			if (DEBUG)
+				printf("S %s = ", av->v->name);
+			v = s->visitor(s, av->node, dt, s->curr[0]);
+			if (DEBUG)
+				printf("\n");
 			data[av->offset] = v;
 			break;
 		}
@@ -851,6 +867,101 @@ svisit(SDSim *s, Node *n, double dt, double time)
 			v = pow(l, r);
 			break;
 		}
+		break;
+	case N_UNKNOWN:
+	default:
+		// TODO: error
+		break;
+	}
+
+	return v;
+}
+
+double
+dvisit(SDSim *s, Node *n, double dt, double time)
+{
+	double v = NAN;
+	double cond, l, r;
+	double args[6];
+	int off;
+
+	switch (n->type) {
+	case N_PAREN:
+		printf("(");
+		v = dvisit(s, n->left, dt, time);
+		printf(")");
+		break;
+	case N_FLOATLIT:
+		printf("%f", n->fval);
+		v = n->fval;
+		break;
+	case N_IDENT:
+		printf("%s", n->av->v->name);
+		if (n->av->src)
+			off = n->av->src->offset;
+		else
+			off = n->av->offset;
+		v = s->curr[off];
+		break;
+	case N_CALL:
+		memset(args, 0, 6*sizeof(*args));
+		printf("%s(", n->left->sval);
+		(void)n->left->sval;
+		for (size_t i = 0; i < n->args.len; i++) {
+			Node *arg = n->args.elems[i];
+			args[i] = dvisit(s, arg, dt, time);
+			if (i != n->args.len - 1)
+				printf(",");
+		}
+		printf(")");
+		v = n->fn(s, n, dt, time, n->args.len, args);
+		break;
+	case N_IF:
+		printf("(if (");
+		cond = dvisit(s, n->cond, dt, time);
+		printf(") %s:", cond ? "true" : "false");
+		if (cond != 0)
+			v = dvisit(s, n->left, dt, time);
+		else
+			v = dvisit(s, n->right, dt, time);
+		printf(")");
+		break;
+	case N_BINARY:
+		printf("(bin ");
+		l = dvisit(s, n->left, dt, time);
+		printf(":%f %c ", l, n->op);
+		r = dvisit(s, n->right, dt, time);
+		printf(":%f)", r);
+		switch (n->op) {
+		case '+':
+			v = l + r;
+			break;
+		case '-':
+			v = l - r;
+			break;
+		case '*':
+			v = l * r;
+			break;
+		case '/':
+			v = l / r;
+			break;
+		case '<':
+			v = l < r ? 1 : 0;
+			break;
+		case '>':
+			v = l > r ? 1 : 0;
+			break;
+		case u'≤':
+			v = l <= r ? 1 : 0;
+			break;
+		case u'≥':
+			v = l >= r ? 1 : 0;
+			break;
+		case '^':
+			v = pow(l, r);
+			break;
+		}
+		printf("::%f", v);
 		break;
 	case N_UNKNOWN:
 	default:
