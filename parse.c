@@ -450,10 +450,12 @@ expr(Parser *p, Node **n, int level)
 			break;
 		}
 
+		// expr must be passed level + 1, not 0, to preserve
+		// left-associativity
 		if (level + 1 == MAX_BINARY)
 			ok = fact(p, &rhs);
 		else
-			ok = expr(p, &rhs, 0);
+			ok = expr(p, &rhs, level + 1);
 		if (!ok || !rhs) {
 			ok = false;
 			goto out;

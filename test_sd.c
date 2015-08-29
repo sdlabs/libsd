@@ -936,6 +936,13 @@ static const ParseTestData2 PARSE_TESTS2[] = {
 		{N_IDENT, 0, "b"},
 		{N_IDENT, 0, "c"},
 	}},
+	{"4 - 5 + 6", {
+		{N_BINARY, '+', NULL},
+		{N_BINARY, '-', NULL},
+		{N_FLOATLIT, 0, "4"},
+		{N_FLOATLIT, 0, "5"},
+		{N_FLOATLIT, 0, "6"},
+	}},
 };
 
 static const char *PARSE_TEST_FAILS[] = {
