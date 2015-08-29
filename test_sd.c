@@ -689,6 +689,20 @@ static const LexTestData LEX_TESTS[] = {
 		{"≤", TOK_TOKEN},
 		{"4", TOK_NUMBER},
 	}},
+	{"3 AND 4", {
+		{"3", TOK_NUMBER},
+		{"&", TOK_TOKEN},
+		{"4", TOK_NUMBER},
+	}},
+	{"3 OR 4", {
+		{"3", TOK_NUMBER},
+		{"|", TOK_TOKEN},
+		{"4", TOK_NUMBER},
+	}},
+	{"NOT 0", {
+		{"!", TOK_TOKEN},
+		{"0", TOK_NUMBER},
+	}},
 	{"3 >= 4", {
 		{"3", TOK_NUMBER},
 		{"≥", TOK_TOKEN},

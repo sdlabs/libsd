@@ -38,6 +38,7 @@ typedef enum {
 	N_IDENT,
 	N_CALL,
 	N_BINARY,
+	N_UNARY,
 	N_IF,
 } NodeType;
 

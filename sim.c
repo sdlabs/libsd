@@ -835,6 +835,20 @@ svisit(SDSim *s, Node *n, double dt, double time)
 		else
 			v = svisit(s, n->right, dt, time);
 		break;
+	case N_UNARY:
+		l = svisit(s, n->left, dt, time);
+		switch (n->op) {
+		case '+':
+			v = l;
+			break;
+		case '-':
+			v = -l;
+			break;
+		case '!':
+			v = l == 0 ? 1 : 0;
+			break;
+		}
+		break;
 	case N_BINARY:
 		l = svisit(s, n->left, dt, time);
 		r = svisit(s, n->right, dt, time);
@@ -857,6 +871,15 @@ svisit(SDSim *s, Node *n, double dt, double time)
 		case '>':
 			v = l > r ? 1 : 0;
 			break;
+		case '&':
+			v = l == 1 && r == 1 ? 1 : 0;
+			break;
+		case '|':
+			v = l == 1 || r == 1 ? 1 : 0;
+			break;
+		case '=':
+			v = l == r;
+			break;
 		case u'≤':
 			v = l <= r ? 1 : 0;
 			break;
@@ -866,10 +889,13 @@ svisit(SDSim *s, Node *n, double dt, double time)
 		case '^':
 			v = pow(l, r);
 			break;
+		default:
+			printf("unknown binary op (%c) encountered\n", n->op);
 		}
 		break;
 	case N_UNKNOWN:
 	default:
+		printf("unknown node encountered\n");
 		// TODO: error
 		break;
 	}

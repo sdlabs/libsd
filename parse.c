@@ -32,11 +32,31 @@ static const char *const RESERVED[] = {
 	"else",
 };
 
+static const char *const OP_WORDS[] = {
+	"not",
+	"and",
+	"or",
+	"mod",
+};
+
+static const char *const OP_SHORT[] = {
+	"!",
+	"&",
+	"|",
+	"%",
+};
+
+static const char *const UNARY = "+-!";
+
 static const char *const BINARY[] = {
 	"^",
-	"*/",
+	"!", // FIXME(bp) right-associativity
+	"*/%",
 	"+-",
-	"=><≥≤",
+	"><≥≤",
+	"=",
+	"&",
+	"|",
 };
 static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
@@ -399,18 +419,24 @@ lex_ident(Lexer *l, Token *t)
 
 	t->loc.line = l->line;
 	t->loc.pos = pos - l->lstart;
+	t->type = TOK_IDENT;
 
-	bool reserved = false;
 	for (size_t i = 0; i < sizeof(RESERVED)/sizeof(*RESERVED); i++) {
 		if (strcmp(t->start, RESERVED[i]) == 0) {
-			reserved = true;
+			t->type = TOK_RESERVED;
 			break;
 		}
 	}
-	if (reserved)
-		t->type = TOK_RESERVED;
-	else
-		t->type = TOK_IDENT;
+
+	for (size_t i = 0; i < sizeof(OP_WORDS)/sizeof(*OP_WORDS); i++) {
+		if (strcmp(t->start, OP_WORDS[i]) == 0) {
+			strcpy(t->buf, OP_SHORT[i]);
+			t->start = t->buf;
+			t->len = strlen(t->buf);
+			t->type = TOK_TOKEN;
+			break;
+		}
+	}
 
 	return 0;
 }
@@ -487,6 +513,7 @@ bool
 fact(Parser *p, Node **n)
 {
 	Node *x, *l, *r, *cond;
+	Rune op;
 	bool ok = false;
 
 	x = l = r = cond = NULL;
@@ -506,6 +533,26 @@ fact(Parser *p, Node **n)
 			ok = false;
 			goto out;
 		}
+		x->left = l;
+		*n = x;
+		x = NULL;
+		l = NULL;
+		ok = true;
+		goto out;
+	}
+
+	if (consume_any(p, UNARY, &op)) {
+		ok = expr(p, &l, 0);
+		if (!ok)
+			goto out;
+
+		x = node(N_UNARY);
+		if (!x) {
+			ok = false;
+			goto out;
+		}
+
+		x->op = op;
 		x->left = l;
 		*n = x;
 		x = NULL;
@@ -560,6 +607,7 @@ fact(Parser *p, Node **n)
 		}
 		goto out;
 	}
+	// TODO(bp) []
 out:
 	node_free(x);
 	node_free(l);
@@ -813,6 +861,14 @@ visit(Walker *w, Node *n)
 			if (!ok)
 				break;
 		}
+		break;
+	case N_UNARY:
+		wc = w->ops->start_child(w, n->left);
+		ok = visit(wc, n->left);
+		wc->ops->unref(wc);
+		w->ops->end_child(w, n->left);
+		if (!ok)
+			break;
 		break;
 	case N_IF:
 		wc = w->ops->start_child(w, n->cond);
