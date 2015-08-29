@@ -864,6 +864,9 @@ svisit(SDSim *s, Node *n, double dt, double time)
 		case '=':
 			v = l == r;
 			break;
+		case u'≠':
+			v = l != r;
+			break;
 		case u'≤':
 			v = l <= r ? 1 : 0;
 			break;

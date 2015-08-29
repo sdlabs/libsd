@@ -675,7 +675,7 @@ static const LexTestData LEX_TESTS[] = {
 	}},
 	{"3 <> 4", {
 		{"3", TOK_NUMBER},
-		{"=", TOK_TOKEN},
+		{"≠", TOK_TOKEN},
 		{"4", TOK_NUMBER},
 	}},
 	{"3 >< 4", {
@@ -886,6 +886,11 @@ static const ParseTestData2 PARSE_TESTS2[] = {
 	}},
 	{"3.2 + åbc", {
 		{N_BINARY, '+', NULL},
+		{N_FLOATLIT, 0, "3.2"},
+		{N_IDENT, 0, "åbc"},
+	}},
+	{"3.2 <> åbc", {
+		{N_BINARY, u'≠', NULL},
 		{N_FLOATLIT, 0, "3.2"},
 		{N_IDENT, 0, "åbc"},
 	}},

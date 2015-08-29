@@ -54,7 +54,7 @@ static const char *const BINARY[] = {
 	"*/%",
 	"+-",
 	"><≥≤",
-	"=",
+	"=≠",
 	"&",
 	"|",
 };
@@ -263,7 +263,7 @@ lexer_nexttok(Lexer *l, Token *t)
 	} else if (strcmp(t->buf, "<=") == 0) {
 		strcpy(t->buf, "≤");
 	} else if (strcmp(t->buf, "<>") == 0) {
-		strcpy(t->buf, "=");
+		strcpy(t->buf, "≠");
 	}
 
 	t->start = t->buf;
