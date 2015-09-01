@@ -91,6 +91,10 @@ clean:
 	$(MAKE) -C libutf clean
 	$(MAKE) -C expat clean
 
+bump-tests: $(RTEST_CMD)
+	cd $(RTEST_DIR) && git pull origin master
+	git commit $(RTEST_DIR) -m 'test: bump test-models'
+
 -include $(OBJS:.o=.d)
 
-.PHONY: all clean check test coverage install
+.PHONY: all clean check test coverage install bump-tests
