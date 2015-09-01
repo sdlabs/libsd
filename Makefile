@@ -69,7 +69,7 @@ $(RTEST_CMD): $(RTEST_DIR) .gitmodules
 	git submodule update --init
 	touch $@
 
-check: $(TESTS) $(EXE) $(RTEST_CMD)
+check test: $(TESTS) $(EXE) $(RTEST_CMD)
 	@echo "  TEST  $(TESTS)"
 	$(LCOV) --directory . --zerocounters 2>/dev/null
 	./$(TESTS)
@@ -93,4 +93,4 @@ clean:
 
 -include $(OBJS:.o=.d)
 
-.PHONY: all clean check coverage install
+.PHONY: all clean check test coverage install
