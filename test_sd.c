@@ -1156,8 +1156,10 @@ test_normalize_quoted(void)
 	normalized = normalize_name("a b");
 	if (strcmp(normalized, "a_b") != 0)
 		die("normalize '%s' != '%s'\n", normalized, "a_b");
+	free(normalized);
 
 	normalized = normalize_name("\"a b\"");
 	if (strcmp(normalized, "a_b") != 0)
 		die("normalize '%s' != '%s'\n", normalized, "a_b");
+	free(normalized);
 }
