@@ -205,7 +205,7 @@ lookup(Table *t, double index)
 }
 
 char *
-normalize_name(const char *n)
+canonicalize(const char *n)
 {
 	char *result;
 	size_t len = strlen(n);

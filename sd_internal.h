@@ -264,7 +264,7 @@ int strtrim(const char **s, int len);
 // allocate.
 int strrepl(char *s, const char *orig, const char *new);
 
-char *normalize_name(const char *n);
+char *canonicalize(const char *n);
 
 int slice_make(Slice *s, size_t len, size_t cap);
 int slice_append(Slice *s, void *e);

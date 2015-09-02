@@ -561,7 +561,7 @@ var_from_node_builder(NodeBuilder *nb)
 
 	val = node_builder_get_attr(nb, "name");
 	if (val) {
-		v->name = normalize_name(val);
+		v->name = canonicalize(val);
 	}
 	nbeqn = node_builder_get_first_child(nb, "eqn");
 	if (nbeqn && nbeqn->content)
@@ -570,9 +570,9 @@ var_from_node_builder(NodeBuilder *nb)
 	for (size_t i = 0; i < nb->children.len; i++) {
 		NodeBuilder *child = nb->children.elems[i];
 		if (strcmp(child->name, "inflow") == 0 && child->content)
-			slice_append(&v->inflows, normalize_name(child->content));
+			slice_append(&v->inflows, canonicalize(child->content));
 		if (strcmp(child->name, "outflow") == 0 && child->content)
-			slice_append(&v->outflows, normalize_name(child->content));
+			slice_append(&v->outflows, canonicalize(child->content));
 		if (strcmp(child->name, "non_negative") == 0)
 			v->is_nonneg = true;
 		if (strcmp(child->name, "gf") == 0)
@@ -675,8 +675,8 @@ ref_from_node_builder(NodeBuilder *nb)
 		return NULL;
 
 	ref->type = VAR_REF;
-	ref->src = normalize_name(src);
-	ref->name = normalize_name(dst);
+	ref->src = canonicalize(src);
+	ref->name = canonicalize(dst);
 
 	if (!ref->src || !ref->name) {
 		free(ref->src);

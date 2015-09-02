@@ -678,7 +678,7 @@ ident(Parser *p, Node **n)
 	// FIXME(bp) no mem
 	if (!x)
 		goto error;
-	x->sval = normalize_name(t.start);
+	x->sval = canonicalize(t.start);
 	*n = x;
 	ok = true;
 error:
