@@ -1158,8 +1158,8 @@ test_normalize_quoted(void)
 		die("normalize '%s' != '%s'\n", normalized, "a_b");
 	free(normalized);
 
-	normalized = canonicalize("\"a b\"");
-	if (strcmp(normalized, "a_b") != 0)
-		die("normalize '%s' != '%s'\n", normalized, "a_b");
+	normalized = canonicalize("\"Å b\"");
+	if (strcmp(normalized, "å_b") != 0)
+		die("normalize '%s' != '%s'\n", normalized, "å_b");
 	free(normalized);
 }
