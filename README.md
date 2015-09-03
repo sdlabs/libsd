@@ -89,3 +89,8 @@ free(series);
 sd_sim_unref(sim);
 sd_project_unref(project);
 ```
+
+TODO
+----
+
+- support reciprocal DT
