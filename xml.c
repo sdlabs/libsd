@@ -473,6 +473,7 @@ xmile_builder_end_child(void *data, const char *tag_name, Builder *child)
 	} else if (strcmp(tag_name, "sim_specs") == 0) {
 		SimSpec *specs = &xb->file->sim_specs;
 		NodeBuilder *nbspecs = (NodeBuilder *)child;
+		bool have_savestep = false;
 		val = node_builder_get_attr(nbspecs, "method");
 		if (val)
 			specs->method = strdup(val);
@@ -490,9 +491,16 @@ xmile_builder_end_child(void *data, const char *tag_name, Builder *child)
 		if (nbchild && nbchild->content)
 			specs->dt = strtod(nbchild->content, NULL);
 		nbchild = node_builder_get_first_child(nbspecs, "savestep");
-		if (nbchild && nbchild->content)
+		if (nbchild && nbchild->content) {
 			specs->savestep = strtod(nbchild->content, NULL);
-		else
+			have_savestep = true;
+		}
+		nbchild = node_builder_get_first_child(nbspecs, "save_step");
+		if (nbchild && nbchild->content) {
+			specs->savestep = strtod(nbchild->content, NULL);
+			have_savestep = true;
+		}
+		if (!have_savestep)
 			specs->savestep = specs->dt;
 	} else if (strcmp(tag_name, "model") == 0) {
 		SDModel *m = model_from_node_builder((NodeBuilder *)child);
