@@ -75,6 +75,9 @@ check test: $(TESTS) $(EXE) $(RTEST_CMD)
 	./$(TESTS)
 	./$(RTEST_CMD) ./$(EXE) $(RTEST_DIR)
 
+rtest: $(EXE) $(RTEST_CMD)
+	./$(RTEST_CMD) ./$(EXE) $(RTEST_DIR)
+
 coverage: check
 	./mdl 2>/dev/null || true
 	./mdl -help 2>/dev/null || true
