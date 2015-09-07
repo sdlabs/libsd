@@ -488,8 +488,12 @@ xmile_builder_end_child(void *data, const char *tag_name, Builder *child)
 		if (nbchild && nbchild->content)
 			specs->stop = strtod(nbchild->content, NULL);
 		nbchild = node_builder_get_first_child(nbspecs, "dt");
-		if (nbchild && nbchild->content)
+		if (nbchild && nbchild->content) {
 			specs->dt = strtod(nbchild->content, NULL);
+			val = node_builder_get_attr(nbchild, "reciprocal");
+			if (val && strcmp(val, "true") == 0)
+				specs->dt = 1/specs->dt;
+		}
 		nbchild = node_builder_get_first_child(nbspecs, "savestep");
 		if (nbchild && nbchild->content) {
 			specs->savestep = strtod(nbchild->content, NULL);

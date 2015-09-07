@@ -93,4 +93,4 @@ sd_project_unref(project);
 TODO
 ----
 
-- support reciprocal DT
+- tests for reciprocal DT
