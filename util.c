@@ -212,9 +212,13 @@ canonicalize(const char *n)
 	bool quoted = len > 0 && n[0] == '"' && n[len-1] == '"';
 	int off = quoted ? 1 : 0;
 
-	result = strndup(n+off, len - 2*off);
+	// ideally we would use strndup, but Travis CI seems to have
+	// an old glibc without it?
+	result = strdup(n+off);
 	if (!result)
 		return NULL;
+	result[len - 2*off] = '\0';
+
 	utf8_tolower(&result);
 	// FIXME: be more efficient
 	strrepl(result, "\\\\", "\\");
