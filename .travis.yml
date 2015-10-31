@@ -4,7 +4,7 @@ compiler: clang
 before_install:
   - pip install --user cpp-coveralls
 
-script: make COVFLAGS='-ftest-coverage -fprofile-arcs' OPT='-O0'
+script: make coverage COVFLAGS='-ftest-coverage -fprofile-arcs' OPT='-O0'
 
 after_success:
   - coveralls

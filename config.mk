@@ -29,7 +29,7 @@ LDFLAGS  += -fPIC
 #LDFLAGS += -flto
 
 LCOV     ?= true #lcov
-GENHTML  ?= genhtml
+GENHTML  ?= true #genhtml
 
 AR       ?= ar
 RANLIB   ?= ranlib
