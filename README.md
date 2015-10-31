@@ -1,6 +1,8 @@
 libsd - System Dynamics for developers
 ======================================
 
+[![Build Status](https://travis-ci.org/sdlabs/libsd.svg)](https://travis-ci.org/sdlabs/libsd)
+
 A modern, high-performance, open source system dynamics engine written
 in C, designed for embedding in larger projects.  It has been tested
 to build & run on Linux, FreeBSD, Mac OS X, and Windows (under mingw).
