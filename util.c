@@ -184,7 +184,7 @@ lookup(Table *t, double index)
 	size_t high = len;
 	size_t mid;
 	while (low < high) {
-		mid = low + ((high-low)/2);
+		mid = low + (high-low)/2;
 		if (x[mid] < index)
 			low = mid + 1;
 		else
@@ -197,7 +197,7 @@ lookup(Table *t, double index)
 		return y[i];
 	} else {
 		// slope = deltaY/deltaX
-		double slope = (y[i] - y[i-1]) / (x[i] - x[i-1]);
+		double slope = (y[i] - y[i-1])/(x[i] - x[i-1]);
 		return (index-x[i-1])*slope + y[i-1];
 	}
 
