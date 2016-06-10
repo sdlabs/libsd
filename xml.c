@@ -117,10 +117,12 @@ project_parse_file(SDProject *p, FILE *f)
 {
 	char *buf = calloc(BUFSIZ, sizeof(char));
 	File *sdf = calloc(1, sizeof(File));
-	BuilderStack bs = {0};
+	BuilderStack bs;
 	XML_Parser parser = NULL;
 	int err = SD_ERR_NO_ERROR;
 	bool done = false;
+
+	memset(&bs, 0, sizeof(bs));
 
 	if (!buf || !sdf) {
 		err = SD_ERR_NOMEM;
