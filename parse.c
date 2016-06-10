@@ -738,7 +738,7 @@ bool
 consume_tok(Parser *p, Rune r)
 {
 	Token t;
-	Rune tr;
+	Rune tr = 0;
 	int err;
 	bool ok = false;
 

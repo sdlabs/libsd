@@ -248,7 +248,7 @@ avar_init(AVar *av, AVar *module)
 	// is amodule if we have a model pointer
 	if (av->model) {
 		return module_compile(av);
-	} else if (av->v->type == VAR_REF) {
+	} else if (av->v->type == VAR_REF && module) {
 		AVar *src = resolve(module->parent, av->v->src);
 		if (src) {
 			av->src = src;
@@ -592,7 +592,7 @@ int
 sd_sim_reset(SDSim *s)
 {
 	int err = 0;
-	size_t save_every;
+	size_t save_every, nvars;
 
 	s->spec = s->module->model->file->sim_specs;
 	s->step = 0;
@@ -606,8 +606,12 @@ sd_sim_reset(SDSim *s)
 		s->nsaves++;
 
 	free(s->slab);
+	nvars = s->nvars;
+	// ensure we don't ask calloc to allocate 0 elements
+	if (!nvars)
+		nvars = 1;
 	// XXX: 1 extra step to simplify run_to
-	s->slab = calloc(s->nvars*(s->nsaves + 1), sizeof(double));
+	s->slab = calloc(nvars*(s->nsaves + 1), sizeof(double));
 	if (!s->slab) {
 		err = SD_ERR_NOMEM;
 		goto error;

@@ -117,7 +117,7 @@ project_parse_file(SDProject *p, FILE *f)
 {
 	char *buf = calloc(BUFSIZ, sizeof(char));
 	File *sdf = calloc(1, sizeof(File));
-	BuilderStack bs;
+	BuilderStack bs = {0};
 	XML_Parser parser = NULL;
 	int err = SD_ERR_NO_ERROR;
 	bool done = false;
@@ -133,6 +133,10 @@ project_parse_file(SDProject *p, FILE *f)
 	bs.file = sdf;
 	bs.stack_top = -1;
 	bs.stack = calloc(STACKLEN, sizeof(Builder*));
+	if (!bs.stack) {
+		err = SD_ERR_NOMEM;
+		goto error;
+	}
 
 	// TODO(bp) ParserCreateNS
 	parser = XML_ParserCreate(NULL);
@@ -163,9 +167,11 @@ project_parse_file(SDProject *p, FILE *f)
 error:
 	XML_ParserFree(parser);
 	free(sdf);
-	for (int i = bs.stack_top; i >= 0; i--) {
-		builder_unref(bs.stack[i]);
-		bs.stack[i] = NULL;
+	if (bs.stack) {
+		for (int i = bs.stack_top; i >= 0; i--) {
+			builder_unref(bs.stack[i]);
+			bs.stack[i] = NULL;
+		}
 	}
 	free(bs.stack);
 	free(buf);

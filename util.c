@@ -142,8 +142,7 @@ utf8_tolower(char **s)
 	if (!d)
 		return SD_ERR_NOMEM;
 
-
-	src = *s;
+	src = d;
 	size_t doff = 0;
 	for (size_t len = slen; (n = charntorune(&u, *ss, len)); *ss += n, len -= n) {
 		Rune l = tolowerrune(u);
