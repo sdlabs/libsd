@@ -5,6 +5,7 @@ SRC = util.c xml.c project.c parse.c sim.c
 OBJ = $(SRC:.c=.o)
 
 LIB = libsd.a
+DLIB = libsd.so
 INC = sd.h
 EXE = mdl$(EXTENSION)
 
@@ -49,6 +50,8 @@ $(LIB): libutf/libutf.a expat/.libs/libexpat.a sd.h sd_internal.h $(OBJ)
 	$(AR) rc $@ libutf/*.o
 	$(AR) rc $@ $(OBJ)
 	$(RANLIB) $@
+
+$(DLIB): $(LIB)
 
 expat/Makefile:
 	cd expat && ./configure --enable-shared=no --enable-static=yes CC=$(CC) RANLIB=$(RANLIB) AR=$(AR) CFLAGS="-Os -g"
