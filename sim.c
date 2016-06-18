@@ -13,9 +13,9 @@
 
 typedef struct {
 	Walker w;
-	AVar *module;
-	AVar *av;
-	Node *curr;
+	ptr<AVar> module;
+	ptr<AVar> av;
+	ptr<Node> curr;
 } AVarWalker;
 
 typedef struct {
@@ -23,9 +23,9 @@ typedef struct {
 	Fn fn;
 } FnDef;
 
-static double rt_min(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
-static double rt_max(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
-static double rt_pulse(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
+static double rt_min(ptr<SDSim> s, ptr<Node> n, double dt, double t, size_t len, double *args);
+static double rt_max(ptr<SDSim> s, ptr<Node> n, double dt, double t, size_t len, double *args);
+static double rt_pulse(ptr<SDSim> s, ptr<Node> n, double dt, double t, size_t len, double *args);
 
 static double *sim_curr(ptr<SDSim> s);
 static double *sim_next(ptr<SDSim> s);
@@ -33,24 +33,24 @@ static double *sim_next(ptr<SDSim> s);
 static void calc(ptr<SDSim> s, double *data, Slice *l, bool initial);
 static void calc_stocks(ptr<SDSim> s, double *data, Slice *l);
 
-static double svisit(ptr<SDSim> s, Node *n, double dt, double time);
+static double svisit(ptr<SDSim> s, ptr<Node> n, double dt, double time);
 
-static AVar *module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *module);
-static int module_compile(AVar *module);
-static int module_assign_offsets(AVar *module, int *offset);
-static int module_get_varnames(AVar *module, const char **result, size_t max);
-static void module_clear_visited(AVar *module);
-static int module_sort_runlists(AVar *module);
-static int module_add_to_runlists(AVar *module, AVar *av);
+static ptr<AVar> module(ptr<SDProject> p, ptr<AVar> parent, ptr<SDModel> model, ptr<Var> module);
+static int module_compile(ptr<AVar> module);
+static int module_assign_offsets(ptr<AVar> module, int *offset);
+static int module_get_varnames(ptr<AVar> module, const char **result, size_t max);
+static void module_clear_visited(ptr<AVar> module);
+static int module_sort_runlists(ptr<AVar> module);
+static int module_add_to_runlists(ptr<AVar> module, ptr<AVar> av);
 
-static const char *avar_qual_name(AVar *av);
+static const char *avar_qual_name(ptr<AVar> av);
 
-static AVarWalker *avar_walker_new(AVar *module, AVar *av);
+static AVarWalker *avar_walker_new(ptr<AVar> module, ptr<AVar> av);
 static void avar_walker_ref(void *data);
 static void avar_walker_unref(void *data);
-static void avar_walker_start(void *data, Node *n);
-static Walker *avar_walker_start_child(void *data, Node *n);
-static void avar_walker_end_child(void *data, Node *);
+static void avar_walker_start(void *data, ptr<Node> n);
+static Walker *avar_walker_start_child(void *data, ptr<Node> n);
+static void avar_walker_end_child(void *data, ptr<Node> );
 
 static const WalkerOps AVAR_WALKER_OPS = {
 	.ref = avar_walker_ref,
@@ -68,11 +68,11 @@ static const FnDef RT_FNS[] = {
 };
 static const size_t RT_FNS_LEN = sizeof(RT_FNS)/sizeof(RT_FNS[0]);
 
-AVar *
-avar(AVar *parent, Var *v)
+ptr<AVar>
+avar(ptr<AVar> parent, ptr<Var> v)
 {
 	ptr<SDModel> model;
-	AVar *av;
+	ptr<AVar> av;
 	int err;
 
 	av = NULL;
@@ -104,12 +104,12 @@ avar(AVar *parent, Var *v)
 	return av;
 error:
 	printf("eqn parse failed for %s\n", v->name);
-	free(av);
+	free((AVar *)av);
 	return NULL;
 }
 
 const char *
-avar_qual_name(AVar *av)
+avar_qual_name(ptr<AVar> av)
 {
 	const char *parent;
 	size_t parent_len, name_len;
@@ -147,7 +147,7 @@ avar_qual_name(AVar *av)
 }
 
 AVarWalker *
-avar_walker_new(AVar *module, AVar *av)
+avar_walker_new(ptr<AVar> module, ptr<AVar> av)
 {
 	AVarWalker *w = calloc(1, sizeof(*w));
 
@@ -181,10 +181,10 @@ avar_walker_unref(void *data)
 }
 
 void
-avar_walker_start(void *data, Node *n)
+avar_walker_start(void *data, ptr<Node> n)
 {
 	AVarWalker *avw = data;
-	AVar *dep;
+	ptr<AVar> dep;
 
 	avw->curr = n;
 
@@ -197,7 +197,7 @@ avar_walker_start(void *data, Node *n)
 			return;
 		}
 		n->av = dep;
-		slice_append(&avw->av->direct_deps, dep);
+		slice_append(&avw->av->direct_deps, (AVar *)dep);
 		break;
 	case N_FLOATLIT:
 		n->fval = atof(n->sval);
@@ -218,10 +218,10 @@ avar_walker_start(void *data, Node *n)
 }
 
 Walker *
-avar_walker_start_child(void *data, Node *n)
+avar_walker_start_child(void *data, ptr<Node> n)
 {
 	AVarWalker *avw = data;
-	Node *curr = avw->curr;
+	ptr<Node> curr = avw->curr;
 
 	// skip trying to resolve function name identifiers for calls
 	// a second time - already handled in avar_walker_start above
@@ -233,12 +233,12 @@ avar_walker_start_child(void *data, Node *n)
 }
 
 void
-avar_walker_end_child(void *data, Node *n)
+avar_walker_end_child(void *data, ptr<Node> n)
 {
 }
 
 int
-avar_init(AVar *av, AVar *module)
+avar_init(ptr<AVar> av, ptr<AVar> module)
 {
 	AVarWalker *w;
 	bool ok;
@@ -249,7 +249,7 @@ avar_init(AVar *av, AVar *module)
 	if (av->model) {
 		return module_compile(av);
 	} else if (av->v->type == VAR_REF && module) {
-		AVar *src = resolve(module->parent, av->v->src);
+		ptr<AVar> src = resolve(module->parent, av->v->src);
 		if (src) {
 			av->src = src;
 			return 0;
@@ -267,17 +267,17 @@ avar_init(AVar *av, AVar *module)
 
 	for (size_t i = 0; i < av->v->inflows.len; i++) {
 		char *in_name = av->v->inflows.elems[i];
-		AVar *in = resolve(module, in_name);
+		ptr<AVar> in = resolve(module, in_name);
 		if (!in)
 			goto error;
-		slice_append(&av->inflows, in);
+		slice_append(&av->inflows, (AVar *)in);
 	}
 	for (size_t i = 0; i < av->v->outflows.len; i++) {
 		char *out_name = av->v->outflows.elems[i];
-		AVar *out = resolve(module, out_name);
+		ptr<AVar> out = resolve(module, out_name);
 		if (!out)
 			goto error;
-		slice_append(&av->outflows, out);
+		slice_append(&av->outflows, (AVar *)out);
 	}
 
 	avar_walker_unref(w);
@@ -289,14 +289,14 @@ error:
 }
 
 void
-avar_free(AVar *av)
+avar_free(ptr<AVar> av)
 {
 	if (!av)
 		return;
 
 	sd_model_unref(av->model);
 	for (size_t i = 0; i < av->avars.len; i++) {
-		AVar *child = av->avars.elems[i];
+		ptr<AVar> child = av->avars.elems[i];
 		avar_free(child);
 	}
 	free(av->avars.elems);
@@ -308,14 +308,14 @@ avar_free(AVar *av)
 	free(av->initials.elems);
 	free(av->flows.elems);
 	free(av->stocks.elems);
-	var_free(av->time);
-	free(av);
+	var_free((Var *)av->time);
+	free((AVar *)av);
 }
 
-AVar *
-module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *vmodule)
+ptr<AVar>
+module(ptr<SDProject> p, ptr<AVar> parent, ptr<SDModel> model, ptr<Var> vmodule)
 {
-	AVar *module;
+	ptr<AVar> module;
 	Slice conns;
 
 	module = calloc(1, sizeof(*module));
@@ -326,19 +326,19 @@ module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *vmodule)
 	module->parent = parent;
 
 	if (!parent) {
-		Var *time = calloc(1, sizeof(*time));
+		ptr<Var> time = calloc(1, sizeof(*time));
 		if (!time)
 			goto error;
 		time->type = VAR_AUX;
 		time->name = strdup("time");
 		module->time = time;
 
-		AVar *atime = calloc(1, sizeof(*atime));
+		ptr<AVar> atime = calloc(1, sizeof(*atime));
 		if (!atime)
 			goto error;
 		atime->v = time;
 		atime->parent = module;
-		slice_append(&module->avars, atime);
+		slice_append(&module->avars, (AVar *)atime);
 	}
 
 	memset(&conns, 0, sizeof(conns));
@@ -346,14 +346,14 @@ module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *vmodule)
 		conns = vmodule->conns;
 
 	for (size_t i = 0; i < model->vars.len; i++) {
-		AVar *av;
-		Var *v;
+		ptr<AVar> av;
+		ptr<Var> v;
 
 		av = NULL;
 		v = model->vars.elems[i];
 		// FIXME: this is unelegant and seems inefficient.
 		for (size_t j = 0; j < conns.len; j++) {
-			Var *r = conns.elems[j];
+			ptr<Var> r = conns.elems[j];
 			if (strcmp(v->name, r->name) == 0) {
 				av = avar(module, r);
 				break;
@@ -363,7 +363,7 @@ module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *vmodule)
 			av = avar(module, v);
 		if (!av)
 			goto error;
-		slice_append(&module->avars, av);
+		slice_append(&module->avars, (AVar *)av);
 	}
 
 	return module;
@@ -372,8 +372,8 @@ error:
 	return NULL;
 }
 
-AVar *
-resolve(AVar *module, const char *name)
+ptr<AVar>
+resolve(ptr<AVar> module, const char *name)
 {
 	size_t len;
 	const char *subvar;
@@ -394,7 +394,7 @@ resolve(AVar *module, const char *name)
 	}
 
 	for (size_t i = 0; i < module->avars.len; i++) {
-		AVar *av = module->avars.elems[i];
+		ptr<AVar> av = module->avars.elems[i];
 		if (subvar && av->v->type == VAR_MODULE && strncmp(av->v->name, name, len) == 0) {
 			return resolve(av, subvar);
 		}
@@ -406,9 +406,9 @@ resolve(AVar *module, const char *name)
 }
 
 int
-module_compile(AVar *module)
+module_compile(ptr<AVar> module)
 {
-	AVar *av;
+	ptr<AVar> av;
 	int err, failed;
 
 	failed = 0;
@@ -484,11 +484,11 @@ error:
 }
 
 int
-module_assign_offsets(AVar *module, int *offset)
+module_assign_offsets(ptr<AVar> module, int *offset)
 {
 	int err;
 	for (size_t i = 0; i < module->avars.len; i++) {
-		AVar *av;
+		ptr<AVar> av;
 		av = module->avars.elems[i];
 		if (av->model) {
 			err = module_assign_offsets(av, offset);
@@ -504,7 +504,7 @@ module_assign_offsets(AVar *module, int *offset)
 	return 0;
 }
 
-int module_add_to_runlists(AVar *module, AVar *av)
+int module_add_to_runlists(ptr<AVar> module, ptr<AVar> av)
 {
 	if (av->visited)
 		return 0;
@@ -518,7 +518,7 @@ int module_add_to_runlists(AVar *module, AVar *av)
 	// make sure any of our dependencies are on runlists before
 	// us.
 	for (size_t i = 0; i < av->direct_deps.len; i++) {
-		AVar *dep = av->direct_deps.elems[i];
+		ptr<AVar> dep = av->direct_deps.elems[i];
 		int err;
 
 		if (dep->visited)
@@ -530,19 +530,19 @@ int module_add_to_runlists(AVar *module, AVar *av)
 	}
 
 	if (av->v->type == VAR_MODULE) {
-		slice_append(&module->initials, av);
-		slice_append(&module->flows, av);
-		slice_append(&module->stocks, av);
+		slice_append(&module->initials, (AVar *)av);
+		slice_append(&module->flows, (AVar *)av);
+		slice_append(&module->stocks, (AVar *)av);
 	} else if (av->v->type == VAR_STOCK) {
-		slice_append(&module->initials, av);
-		slice_append(&module->stocks, av);
+		slice_append(&module->initials, (AVar *)av);
+		slice_append(&module->stocks, (AVar *)av);
 		// refs are not simulated
 	} else if (av->v->type != VAR_REF) {
-		slice_append(&module->initials, av);
+		slice_append(&module->initials, (AVar *)av);
 		if (av->is_const)
-			slice_append(&module->stocks, av);
+			slice_append(&module->stocks, (AVar *)av);
 		else
-			slice_append(&module->flows, av);
+			slice_append(&module->flows, (AVar *)av);
 	}
 
 	av->visited = true;
@@ -552,7 +552,7 @@ int module_add_to_runlists(AVar *module, AVar *av)
 }
 
 int
-module_sort_runlists(AVar *module)
+module_sort_runlists(ptr<AVar> module)
 {
 	int off;
 
@@ -566,7 +566,7 @@ module_sort_runlists(AVar *module)
 		off = 0;
 
 	for (size_t i = off; i < module->avars.len; i++) {
-		AVar *sub = module->avars.elems[i];
+		ptr<AVar> sub = module->avars.elems[i];
 		int err;
 
 		if (sub->visited)
@@ -635,7 +635,7 @@ calc(ptr<SDSim> s, double *data, Slice *l, bool initial)
 
 	//printf("CALC\n");
 	for (size_t i = 0; i < l->len; i++) {
-		AVar *av = l->elems[i];
+		ptr<AVar> av = l->elems[i];
 		if (!av->node) {
 			if (initial)
 				calc(s, data, &av->initials, true);
@@ -659,7 +659,7 @@ calc_stocks(ptr<SDSim> s, double *data, Slice *l)
 
 	//printf("CALC STOCKS\n");
 	for (size_t i = 0; i < l->len; i++) {
-		AVar *av = l->elems[i];
+		ptr<AVar> av = l->elems[i];
 		// XXX: this could also be implemented by building the
 		// addition and subtraction of flows in the stock's
 		// AST.  Maybe that would be cleaner?
@@ -668,11 +668,11 @@ calc_stocks(ptr<SDSim> s, double *data, Slice *l)
 			prev = s->curr[av->offset];
 			v = 0;
 			for (size_t i = 0; i < av->inflows.len; i++) {
-				AVar *in = av->inflows.elems[i];
+				ptr<AVar> in = av->inflows.elems[i];
 				v += s->curr[in->offset];
 			}
 			for (size_t i = 0; i < av->outflows.len; i++) {
-				AVar *out = av->outflows.elems[i];
+				ptr<AVar> out = av->outflows.elems[i];
 				v -= s->curr[out->offset];
 			}
 			data[av->offset] = prev + v*dt;
@@ -754,7 +754,7 @@ sd_sim_ref(ptr<SDSim> sim)
 int
 sd_sim_get_value(ptr<SDSim> s, const char *name, double *result)
 {
-	AVar *av;
+	ptr<AVar> av;
 
 	if (!s || !name || !result)
 		return SD_ERR_UNSPECIFIED;
@@ -786,7 +786,7 @@ sd_sim_unref(ptr<SDSim> sim)
 }
 
 double
-svisit(ptr<SDSim> s, Node *n, double dt, double time)
+svisit(ptr<SDSim> s, ptr<Node> n, double dt, double time)
 {
 	double v = NAN;
 	double cond, l, r;
@@ -811,7 +811,7 @@ svisit(ptr<SDSim> s, Node *n, double dt, double time)
 		memset(args, 0, 6*sizeof(*args));
 		(void)n->left->sval;
 		for (size_t i = 0; i < n->args.len; i++) {
-			Node *arg = n->args.elems[i];
+			ptr<Node> arg = n->args.elems[i];
 			args[i] = svisit(s, arg, dt, time);
 		}
 		v = n->fn(s, n, dt, time, n->args.len, args);
@@ -922,12 +922,12 @@ sd_sim_get_varnames(ptr<SDSim> sim, const char **result, size_t max)
 }
 
 int
-module_get_varnames(AVar *module, const char **result, size_t max)
+module_get_varnames(ptr<AVar> module, const char **result, size_t max)
 {
 	const char **start = result;
 
 	for (size_t i = 0; i < module->avars.len && max > 0; i++) {
-		AVar *av = module->avars.elems[i];
+		ptr<AVar> av = module->avars.elems[i];
 		if (av->model) {
 			size_t n = module_get_varnames(av, result, max);
 			result += n;
@@ -943,10 +943,10 @@ module_get_varnames(AVar *module, const char **result, size_t max)
 }
 
 void
-module_clear_visited(AVar *module)
+module_clear_visited(ptr<AVar> module)
 {
 	for (size_t i = 0; i < module->avars.len; i++) {
-		AVar *av = module->avars.elems[i];
+		ptr<AVar> av = module->avars.elems[i];
 		if (av->model) {
 			module_clear_visited(av);
 		} else {
@@ -970,7 +970,7 @@ sd_sim_get_series(ptr<SDSim> s, const char *name, double *results, size_t len)
 	if (strcmp(name, "time") == 0) {
 		off = 0;
 	} else {
-		AVar *av = resolve(s->module, name);
+		ptr<AVar> av = resolve(s->module, name);
 		if (!av)
 			return -1;
 		off = av->offset;
@@ -983,7 +983,7 @@ sd_sim_get_series(ptr<SDSim> s, const char *name, double *results, size_t len)
 }
 
 double
-rt_pulse(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
+rt_pulse(ptr<SDSim> s, ptr<Node> n, double dt, double time, size_t len, double *args)
 {
 	double magnitude, first_pulse, next_pulse, interval;
 
@@ -1011,7 +1011,7 @@ rt_pulse(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args
 }
 
 double
-rt_min(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
+rt_min(ptr<SDSim> s, ptr<Node> n, double dt, double time, size_t len, double *args)
 {
 	double a, b;
 
@@ -1025,7 +1025,7 @@ rt_min(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
 }
 
 double
-rt_max(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
+rt_max(ptr<SDSim> s, ptr<Node> n, double dt, double time, size_t len, double *args)
 {
 	double a, b;
 

@@ -986,9 +986,9 @@ typedef struct {
 static VerifyWalker *verify_walker_new(void);
 static void verify_walker_ref(void *data);
 static void verify_walker_unref(void *data);
-static void verify_walker_start(void *data, Node *n);
-static Walker *verify_walker_start_child(void *data, Node *n);
-static void verify_walker_end_child(void *data, Node *n);
+static void verify_walker_start(void *data, ptr<Node> n);
+static Walker *verify_walker_start_child(void *data, ptr<Node> n);
+static void verify_walker_end_child(void *data, ptr<Node> n);
 
 static const WalkerOps VERIFY_WALKER_OPS = {
 	.ref = verify_walker_ref,
@@ -1038,7 +1038,7 @@ verify_walker_unref(void *data)
 }
 
 void
-verify_walker_start(void *data, Node *n)
+verify_walker_start(void *data, ptr<Node> n)
 {
 	VerifyWalker *vw = data;
 	NodeInfo *ni = calloc(1, sizeof(*ni));
@@ -1051,7 +1051,7 @@ verify_walker_start(void *data, Node *n)
 }
 
 Walker *
-verify_walker_start_child(void *data, Node *n)
+verify_walker_start_child(void *data, ptr<Node> n)
 {
 	Walker *w = data;
 	w->ops->ref(w);
@@ -1060,7 +1060,7 @@ verify_walker_start_child(void *data, Node *n)
 }
 
 void
-verify_walker_end_child(void *data, Node *n)
+verify_walker_end_child(void *data, ptr<Node> n)
 {
 }
 

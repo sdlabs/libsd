@@ -64,19 +64,19 @@ static void parser_errorf(Parser *p, const char *s, ...);
 static bool consume_tok(Parser *p, Rune r);
 static bool consume_any(Parser *p, const char *ops, Rune *op);
 static bool consume_reserved(Parser *p, const char *s);
-static bool expr(Parser *p, Node **n, int level);
-static bool fact(Parser *p, Node **n);
-static bool call(Parser *p, Node **n, Node *fn);
-static bool ident(Parser *p, Node **n);
-static bool num(Parser *p, Node **n);
+static bool expr(Parser *p, ptr<Node> *n, int level);
+static bool fact(Parser *p, ptr<Node> *n);
+static bool call(Parser *p, ptr<Node> *n, ptr<Node> fn);
+static bool ident(Parser *p, ptr<Node> *n);
+static bool num(Parser *p, ptr<Node> *n);
 
-static bool visit(Walker *w, Node *n);
+static bool visit(Walker *w, ptr<Node> n);
 
 int
-avar_eqn_parse(AVar *v)
+avar_eqn_parse(ptr<AVar> v)
 {
 	Parser p;
-	Node *n = NULL;
+	ptr<Node> n = NULL;
 	int err = SD_ERR_NO_ERROR;
 	bool ok;
 
@@ -442,13 +442,13 @@ lex_ident(Lexer *l, Token *t)
 }
 
 bool
-expr(Parser *p, Node **n, int level)
+expr(Parser *p, ptr<Node> *n, int level)
 {
 	Token t;
 	int err;
-	Node *x = NULL;
-	Node *lhs = NULL;
-	Node *rhs = NULL;
+	ptr<Node> x = NULL;
+	ptr<Node> lhs = NULL;
+	ptr<Node> rhs = NULL;
 	bool ok = false;
 	const char *ops;
 	Rune op;
@@ -510,9 +510,9 @@ out:
 }
 
 bool
-fact(Parser *p, Node **n)
+fact(Parser *p, ptr<Node> *n)
 {
-	Node *x, *l, *r, *cond;
+	ptr<Node> x, l, r, cond;
 	Rune op;
 	bool ok = false;
 
@@ -617,10 +617,10 @@ out:
 }
 
 bool
-call(Parser *p, Node **n, Node *fn)
+call(Parser *p, ptr<Node> *n, ptr<Node> fn)
 {
-	Node *arg = NULL;
-	Node *x = node(N_CALL);
+	ptr<Node> arg = NULL;
+	ptr<Node> x = node(N_CALL);
 
 	// FIXME: no mem
 	if (!x)
@@ -638,7 +638,7 @@ call(Parser *p, Node **n, Node *fn)
 			parser_errorf(p, "call: expected expr arg");
 			goto error;
 		}
-		slice_append(&x->args, arg);
+		slice_append(&x->args, (Node *)arg);
 		arg = NULL;
 		if (consume_tok(p, ','))
 			continue;
@@ -658,10 +658,10 @@ error:
 }
 
 bool
-ident(Parser *p, Node **n)
+ident(Parser *p, ptr<Node> *n)
 {
 	Token t;
-	Node *x;
+	ptr<Node> x;
 	int err;
 	bool ok = false;
 
@@ -687,10 +687,10 @@ error:
 }
 
 bool
-num(Parser *p, Node **n)
+num(Parser *p, ptr<Node> *n)
 {
 	Token t;
-	Node *x;
+	ptr<Node> x;
 	int err;
 	bool ok = false;
 
@@ -794,10 +794,10 @@ parser_errorf(Parser *p, const char *fmt, ...)
 	slice_append(&p->errs, err);
 }
 
-Node *
+ptr<Node>
 node(NodeType ty)
 {
-	Node *n = calloc(1, sizeof(*n));
+	ptr<Node> n = calloc(1, sizeof(*n));
 	if (!n)
 		return NULL;
 	n->type = ty;
@@ -805,7 +805,7 @@ node(NodeType ty)
 }
 
 void
-node_free(Node *n)
+node_free(ptr<Node> n)
 {
 	if (!n)
 		return;
@@ -816,17 +816,17 @@ node_free(Node *n)
 	free(n->sval);
 
 	for (size_t i = 0; i < n->args.len; i++)
-		node_free((Node *)n->args.elems[i]);
+		node_free((ptr<Node>)n->args.elems[i]);
 	free(n->args.elems);
 
 	// XXX(bp) remove?
-	memset(n, 0, sizeof(*n));
+	memset((void *)n, 0, sizeof(*n));
 
-	free(n);
+	free((void *)n);
 }
 
 bool
-visit(Walker *w, Node *n)
+visit(Walker *w, ptr<Node> n)
 {
 	Walker *wc = NULL;
 	bool ok = true;
@@ -853,7 +853,7 @@ visit(Walker *w, Node *n)
 		if (!ok)
 			break;
 		for (size_t i = 0; i < n->args.len; i++) {
-			Node *nc = n->args.elems[i];
+			ptr<Node> nc = n->args.elems[i];
 			wc = w->ops->start_child(w, nc);
 			ok = visit(wc, nc);
 			wc->ops->unref(wc);
@@ -906,7 +906,7 @@ visit(Walker *w, Node *n)
 }
 
 bool
-node_walk(Walker *w, Node *n)
+node_walk(Walker *w, ptr<Node> n)
 {
 	bool ok;
 

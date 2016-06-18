@@ -56,7 +56,7 @@ typedef struct AVar_s AVar;
 typedef struct Node_s Node;
 typedef struct WalkerOps_s WalkerOps;
 
-typedef double (*Fn)(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
+typedef double (*Fn)(ptr<SDSim> s, ptr<Node> n, double dt, double t, size_t len, double *args);
 
 
 typedef struct {
@@ -140,9 +140,9 @@ struct SDModel_s {
 
 // annotated var
 struct AVar_s {
-	Var *v;
-	Node *node;
-	AVar *parent;
+	ptr<Var> v;
+	ptr<Node> node;
+	ptr<AVar> parent;
 
 	// fully qualified name, for use in get_varnames.  Always
 	// empty for variables that reside in the root model, lazily
@@ -171,9 +171,9 @@ struct AVar_s {
 	Slice flows;
 	Slice stocks;
 	Slice avars;
-	Var *time;
+	ptr<Var> time;
 
-	AVar *src; // for ref
+	ptr<AVar> src; // for ref
 
 	int offset;
 
@@ -184,7 +184,7 @@ struct AVar_s {
 
 struct SDSim_s {
 	ptr<SDProject> project;
-	AVar *module;
+	ptr<AVar> module;
 	SimSpec spec;
 	double *slab;
 	double *curr;
@@ -199,14 +199,14 @@ struct SDSim_s {
 };
 
 struct Node_s {
-	Node *left;
-	Node *right;
-	Node *cond;
+	ptr<Node> left;
+	ptr<Node> right;
+	ptr<Node> cond;
 	NodeType type;
 	Rune op;
 	char *sval;
 	double fval;
-	AVar *av;
+	ptr<AVar> av;
 	Slice args;
 	Fn fn;
 };
@@ -248,9 +248,9 @@ typedef struct {
 struct WalkerOps_s {
 	void (*ref)(void *data);
 	void (*unref)(void *data);
-	void (*start)(void *data, Node *n);
-	Walker *(*start_child)(void *data, Node *n); // returns w/ refcount of 1
-	void (*end_child)(void *data, Node *n);
+	void (*start)(void *data, ptr<Node> n);
+	Walker *(*start_child)(void *data, ptr<Node> n); // returns w/ refcount of 1
+	void (*end_child)(void *data, ptr<Node> n);
 	void (*end)(void *data);
 };
 
@@ -289,20 +289,20 @@ int lexer_nexttok(Lexer *l, Token *t);
 void token_init(Token *t);
 void token_free(Token *t); // frees token resources, not struct
 
-Node *node(NodeType ty);
+ptr<Node> node(NodeType ty);
 // nodes are not reference counted.  It is expected that there is a
 // single, sole owner of a node (currently always an AVar), and that
 // if you want to mutate or free the node you must lock on the owner.
-void node_free(Node *n);
-bool node_walk(Walker *w, Node *n);
+void node_free(ptr<Node> n);
+bool node_walk(Walker *w, ptr<Node> n);
 
-AVar *avar(AVar *module, Var *v);
-void avar_free(AVar *av);
-int avar_init(AVar *av, AVar *module); // called after all avars have been created
-int avar_eqn_parse(AVar *av);
-int avar_all_deps(AVar *av, Slice *all);
+ptr<AVar> avar(ptr<AVar> module, ptr<Var> v);
+void avar_free(ptr<AVar> av);
+int avar_init(ptr<AVar> av, ptr<AVar> module); // called after all avars have been created
+int avar_eqn_parse(ptr<AVar> av);
+int avar_all_deps(ptr<AVar> av, Slice *all);
 
-AVar *resolve(AVar *module, const char *name);
+ptr<AVar> resolve(ptr<AVar> module, const char *name);
 
 double lookup(Table *t, double index);
 
