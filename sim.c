@@ -35,7 +35,7 @@ static void calc_stocks(SDSim *s, double *data, Slice *l);
 
 static double svisit(SDSim *s, Node *n, double dt, double time);
 
-static AVar *module(SDProject *p, AVar *parent, SDModel *model, Var *module);
+static AVar *module(ptr<SDProject> p, AVar *parent, SDModel *model, Var *module);
 static int module_compile(AVar *module);
 static int module_assign_offsets(AVar *module, int *offset);
 static int module_get_varnames(AVar *module, const char **result, size_t max);
@@ -313,7 +313,7 @@ avar_free(AVar *av)
 }
 
 AVar *
-module(SDProject *p, AVar *parent, SDModel *model, Var *vmodule)
+module(ptr<SDProject> p, AVar *parent, SDModel *model, Var *vmodule)
 {
 	AVar *module;
 	Slice conns;
@@ -435,7 +435,7 @@ module_compile(AVar *module)
 }
 
 SDSim *
-sd_sim_new(SDProject *p, const char *model_name)
+sd_sim_new(ptr<SDProject> p, const char *model_name)
 {
 	SDSim *sim;
 	SDModel *model;

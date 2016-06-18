@@ -122,7 +122,7 @@ struct SDProject_s {
 };
 
 struct File_s {
-	SDProject *project;
+	ptr<SDProject> project;
 	char *version;
 	int level;
 	Header header;
@@ -183,7 +183,7 @@ struct AVar_s {
 };
 
 struct SDSim_s {
-	SDProject *project;
+	ptr<SDProject> project;
 	AVar *module;
 	SimSpec spec;
 	double *slab;
@@ -270,12 +270,12 @@ int slice_make(Slice *s, size_t len, size_t cap);
 int slice_append(Slice *s, void *e);
 int slice_extend(Slice *s, Slice *other);
 
-int project_parse_file(SDProject *p, FILE *f);
-int project_add_file(SDProject *p, File *f);
+int project_parse_file(ptr<SDProject> p, FILE *f);
+int project_add_file(ptr<SDProject> p, File *f);
 
 int module_get_referenced_models(Var *v, Slice *result);
 
-SDModel *sd_project_get_model(SDProject *project, const char *model_name);
+SDModel *sd_project_get_model(ptr<SDProject> project, const char *model_name);
 void sd_model_ref(SDModel *m);
 void sd_model_unref(SDModel *m);
 

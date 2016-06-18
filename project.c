@@ -35,12 +35,12 @@ static const char *SD_ERROR_MSGS[] = {
 };
 
 
-SDProject *
+ptr<SDProject>
 sd_project_open(const char *path, int *err)
 {
 	FILE *f = NULL;
 	char *dir, *dir_str;
-	SDProject *p = NULL;
+	ptr<SDProject> p = NULL;
 	int parse_err;
 
 	dir_str = strdup(path);
@@ -91,13 +91,13 @@ error:
 }
 
 void
-sd_project_ref(SDProject *p)
+sd_project_ref(ptr<SDProject> p)
 {
 	__sync_fetch_and_add(&p->refcount, 1);
 }
 
 void
-sd_project_unref(SDProject *p)
+sd_project_unref(ptr<SDProject> p)
 {
 	if (!p)
 		return;
@@ -106,12 +106,12 @@ sd_project_unref(SDProject *p)
 		for (size_t i = 0; i < p->files.len; ++i)
 			file_free(p->files.elems[i]);
 		free(p->files.elems);
-		free(p);
+		free((SDProject *)p);
 	}
 }
 
 SDModel *
-sd_project_get_model(SDProject *p, const char *n)
+sd_project_get_model(ptr<SDProject> p, const char *n)
 {
 	SDModel *m = NULL;
 	if (!p)
@@ -136,7 +136,7 @@ out:
 }
 
 int
-project_add_file(SDProject *p, File *f)
+project_add_file(ptr<SDProject> p, File *f)
 {
 	return slice_append(&p->files, f);
 }

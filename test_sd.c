@@ -157,7 +157,7 @@ test_hares_and_lynxes(void)
 {
 	int err;
 	size_t len;
-	SDProject *p;
+	ptr<SDProject> p;
 	SDModel *m;
 	SDSim *s;
 	double *time, *series;
@@ -273,7 +273,7 @@ test_hares_and_lynxes(void)
 void
 test_predator_prey(void)
 {
-	SDProject *p;
+	ptr<SDProject> p;
 	int err;
 	double v;
 
@@ -335,7 +335,7 @@ void
 test_one_stock(void)
 {
 	int err;
-	SDProject *p;
+	ptr<SDProject> p;
 	SDSim *s;
 	SDModel *m;
 	double *series;
@@ -494,7 +494,7 @@ void
 test_failure_cases(void)
 {
 	int err;
-	SDProject *p;
+	ptr<SDProject> p;
 
 	p = sd_project_open("non/existant/dir", &err);
 	if (p != NULL)
@@ -818,7 +818,7 @@ void
 test_table(void)
 {
 	int err;
-	SDProject *p;
+	ptr<SDProject> p;
 
 	err = 0;
 	p = sd_project_open("models/predator_prey.xmile", &err);

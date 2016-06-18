@@ -42,14 +42,14 @@ const char *sd_error_str(int err);
 /// integer to hold the details of any error that occurs.  If an error
 /// occurs, the function returns NULL and if the err parameter is not
 /// NULL, details of the error are placed in it.
-SDProject *sd_project_open(const char *path, int *err);
-void sd_project_ref(SDProject *project);
-void sd_project_unref(SDProject *project);
+ptr<SDProject> sd_project_open(const char *path, int *err);
+void sd_project_ref(ptr<SDProject> project);
+void sd_project_unref(ptr<SDProject> project);
 
 /// sd_sim_new creates a new simulation context for the named model.
 /// If model_name is NULL, the context is created for the default/root
 /// model in the project.
-SDSim *sd_sim_new(SDProject *project, const char *model_name);
+SDSim *sd_sim_new(ptr<SDProject> project, const char *model_name);
 void sd_sim_ref(SDSim *sim);
 void sd_sim_unref(SDSim *sim);
 

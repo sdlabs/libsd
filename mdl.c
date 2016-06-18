@@ -47,7 +47,7 @@ int
 main(int argc, char *const argv[])
 {
 	int err = 0;
-	SDProject *p;
+	ptr<SDProject> p;
 	SDSim *s;
 	int nvars, nsteps, n;
 	Result *results;

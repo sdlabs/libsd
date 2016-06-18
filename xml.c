@@ -113,7 +113,7 @@ static const BuilderOps XMILE_BUILDER_OPS = {
 
 
 int
-project_parse_file(SDProject *p, FILE *f)
+project_parse_file(ptr<SDProject> p, FILE *f)
 {
 	char *buf = calloc(BUFSIZ, sizeof(char));
 	File *sdf = calloc(1, sizeof(File));
