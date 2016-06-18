@@ -23,19 +23,19 @@ typedef struct {
 	Fn fn;
 } FnDef;
 
-static double rt_min(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
-static double rt_max(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
-static double rt_pulse(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+static double rt_min(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
+static double rt_max(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
+static double rt_pulse(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
 
-static double *sim_curr(SDSim *s);
-static double *sim_next(SDSim *s);
+static double *sim_curr(ptr<SDSim> s);
+static double *sim_next(ptr<SDSim> s);
 
-static void calc(SDSim *s, double *data, Slice *l, bool initial);
-static void calc_stocks(SDSim *s, double *data, Slice *l);
+static void calc(ptr<SDSim> s, double *data, Slice *l, bool initial);
+static void calc_stocks(ptr<SDSim> s, double *data, Slice *l);
 
-static double svisit(SDSim *s, Node *n, double dt, double time);
+static double svisit(ptr<SDSim> s, Node *n, double dt, double time);
 
-static AVar *module(ptr<SDProject> p, AVar *parent, SDModel *model, Var *module);
+static AVar *module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *module);
 static int module_compile(AVar *module);
 static int module_assign_offsets(AVar *module, int *offset);
 static int module_get_varnames(AVar *module, const char **result, size_t max);
@@ -71,7 +71,7 @@ static const size_t RT_FNS_LEN = sizeof(RT_FNS)/sizeof(RT_FNS[0]);
 AVar *
 avar(AVar *parent, Var *v)
 {
-	SDModel *model;
+	ptr<SDModel> model;
 	AVar *av;
 	int err;
 
@@ -313,7 +313,7 @@ avar_free(AVar *av)
 }
 
 AVar *
-module(ptr<SDProject> p, AVar *parent, SDModel *model, Var *vmodule)
+module(ptr<SDProject> p, AVar *parent, ptr<SDModel> model, Var *vmodule)
 {
 	AVar *module;
 	Slice conns;
@@ -434,11 +434,11 @@ module_compile(AVar *module)
 	return SD_ERR_NO_ERROR;
 }
 
-SDSim *
+ptr<SDSim>
 sd_sim_new(ptr<SDProject> p, const char *model_name)
 {
-	SDSim *sim;
-	SDModel *model;
+	ptr<SDSim> sim;
+	ptr<SDModel> model;
 	int err, offset;
 
 	offset = 0;
@@ -589,7 +589,7 @@ module_sort_runlists(AVar *module)
 }
 
 int
-sd_sim_reset(SDSim *s)
+sd_sim_reset(ptr<SDSim> s)
 {
 	int err = 0;
 	size_t save_every, nvars;
@@ -627,7 +627,7 @@ error:
 }
 
 void
-calc(SDSim *s, double *data, Slice *l, bool initial)
+calc(ptr<SDSim> s, double *data, Slice *l, bool initial)
 {
 	double dt;
 
@@ -651,7 +651,7 @@ calc(SDSim *s, double *data, Slice *l, bool initial)
 }
 
 void
-calc_stocks(SDSim *s, double *data, Slice *l)
+calc_stocks(ptr<SDSim> s, double *data, Slice *l)
 {
 	double prev, v, dt;
 
@@ -689,7 +689,7 @@ calc_stocks(SDSim *s, double *data, Slice *l)
 }
 
 int
-sd_sim_run_to(SDSim *s, double end)
+sd_sim_run_to(ptr<SDSim> s, double end)
 {
 	double dt;
 
@@ -724,7 +724,7 @@ sd_sim_run_to(SDSim *s, double end)
 }
 
 int
-sd_sim_run_to_end(SDSim *s)
+sd_sim_run_to_end(ptr<SDSim> s)
 {
 	if (!s)
 		return -1;
@@ -732,19 +732,19 @@ sd_sim_run_to_end(SDSim *s)
 }
 
 double *
-sim_curr(SDSim *s)
+sim_curr(ptr<SDSim> s)
 {
 	return &s->slab[s->save_step*s->nvars];
 }
 
 double *
-sim_next(SDSim *s)
+sim_next(ptr<SDSim> s)
 {
 	return &s->slab[(s->save_step+1)*s->nvars];
 }
 
 void
-sd_sim_ref(SDSim *sim)
+sd_sim_ref(ptr<SDSim> sim)
 {
 	if (!sim)
 		return;
@@ -752,7 +752,7 @@ sd_sim_ref(SDSim *sim)
 }
 
 int
-sd_sim_get_value(SDSim *s, const char *name, double *result)
+sd_sim_get_value(ptr<SDSim> s, const char *name, double *result)
 {
 	AVar *av;
 
@@ -773,7 +773,7 @@ sd_sim_get_value(SDSim *s, const char *name, double *result)
 }
 
 void
-sd_sim_unref(SDSim *sim)
+sd_sim_unref(ptr<SDSim> sim)
 {
 	if (!sim)
 		return;
@@ -781,12 +781,12 @@ sd_sim_unref(SDSim *sim)
 		avar_free(sim->module);
 		sd_project_unref(sim->project);
 		free(sim->slab);
-		free(sim);
+		free((SDSim *)sim);
 	}
 }
 
 double
-svisit(SDSim *s, Node *n, double dt, double time)
+svisit(ptr<SDSim> s, Node *n, double dt, double time)
 {
 	double v = NAN;
 	double cond, l, r;
@@ -895,7 +895,7 @@ svisit(SDSim *s, Node *n, double dt, double time)
 }
 
 int
-sd_sim_get_stepcount(SDSim *sim)
+sd_sim_get_stepcount(ptr<SDSim> sim)
 {
 	if (!sim)
 		return -1;
@@ -903,7 +903,7 @@ sd_sim_get_stepcount(SDSim *sim)
 }
 
 int
-sd_sim_get_varcount(SDSim *sim)
+sd_sim_get_varcount(ptr<SDSim> sim)
 {
 	if (!sim)
 		return -1;
@@ -911,7 +911,7 @@ sd_sim_get_varcount(SDSim *sim)
 }
 
 int
-sd_sim_get_varnames(SDSim *sim, const char **result, size_t max)
+sd_sim_get_varnames(ptr<SDSim> sim, const char **result, size_t max)
 {
 	if (!sim || !result)
 		return -1;
@@ -959,7 +959,7 @@ module_clear_visited(AVar *module)
 }
 
 int
-sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)
+sd_sim_get_series(ptr<SDSim> s, const char *name, double *results, size_t len)
 {
 	int off;
 	size_t i;
@@ -983,7 +983,7 @@ sd_sim_get_series(SDSim *s, const char *name, double *results, size_t len)
 }
 
 double
-rt_pulse(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+rt_pulse(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
 {
 	double magnitude, first_pulse, next_pulse, interval;
 
@@ -1011,7 +1011,7 @@ rt_pulse(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
 }
 
 double
-rt_min(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+rt_min(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
 {
 	double a, b;
 
@@ -1025,7 +1025,7 @@ rt_min(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
 }
 
 double
-rt_max(SDSim *s, Node *n, double dt, double time, size_t len, double *args)
+rt_max(ptr<SDSim> s, Node *n, double dt, double time, size_t len, double *args)
 {
 	double a, b;
 

@@ -158,8 +158,8 @@ test_hares_and_lynxes(void)
 	int err;
 	size_t len;
 	ptr<SDProject> p;
-	SDModel *m;
-	SDSim *s;
+	ptr<SDModel> m;
+	ptr<SDSim> s;
 	double *time, *series;
 
 	err = 0;
@@ -298,7 +298,7 @@ test_predator_prey(void)
 		die("not 1 model: %d\n", f->models.len);
 
 	int conditions_checked = 0;
-	SDModel *m = f->models.elems[0];
+	ptr<SDModel> m = f->models.elems[0];
 	for (size_t i = 0; i < m->vars.len; i++) {
 		Var *v = m->vars.elems[i];
 		if (strcmp(v->name, "one_time_lynx_harvest") == 0) {
@@ -315,7 +315,7 @@ test_predator_prey(void)
 	if (conditions_checked != 2)
 		die("only %d conditions checked\n", conditions_checked);
 
-	SDSim *s = sd_sim_new(p, NULL);
+	ptr<SDSim> s = sd_sim_new(p, NULL);
 	if (!s)
 		die("pred_prey sim_new failed\n");
 
@@ -336,8 +336,8 @@ test_one_stock(void)
 {
 	int err;
 	ptr<SDProject> p;
-	SDSim *s;
-	SDModel *m;
+	ptr<SDSim> s;
+	ptr<SDModel> m;
 	double *series;
 	size_t len;
 	double v;
@@ -827,9 +827,9 @@ test_table(void)
 		    sd_error_str(err));
 
 	int conditions_checked = 0;
-	SDModel *m = sd_project_get_model(p, NULL);
+	ptr<SDModel> m = sd_project_get_model(p, NULL);
 	for (size_t i = 0; i < m->vars.len; i++) {
-		Var *v = m->vars.elems[i];
+		ptr<Var> v = m->vars.elems[i];
 		if (strcmp(v->name, "hares_killed__per_lynx") == 0 || strcmp(v->name, "hares_killed__per_lynx_2") == 0) {
 			if (!v->gf)
 				die("no gf for hares_killed\n");

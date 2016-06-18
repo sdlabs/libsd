@@ -110,10 +110,10 @@ sd_project_unref(ptr<SDProject> p)
 	}
 }
 
-SDModel *
+ptr<SDModel>
 sd_project_get_model(ptr<SDProject> p, const char *n)
 {
-	SDModel *m = NULL;
+	ptr<SDModel> m = NULL;
 	if (!p)
 		goto out;
 
@@ -171,7 +171,7 @@ sd_error_str(int err)
 
 
 void
-sd_model_ref(SDModel *m)
+sd_model_ref(ptr<SDModel> m)
 {
 	if (!m)
 		return;
@@ -179,7 +179,7 @@ sd_model_ref(SDModel *m)
 }
 
 void
-sd_model_unref(SDModel *m)
+sd_model_unref(ptr<SDModel> m)
 {
 	if (!m)
 		return;
@@ -188,7 +188,7 @@ sd_model_unref(SDModel *m)
 		for (size_t i = 0; i < m->vars.len; ++i)
 			var_free(m->vars.elems[i]);
 		free(m->vars.elems);
-		free(m);
+		free((SDModel *)m);
 	}
 }
 

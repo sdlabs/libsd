@@ -49,21 +49,21 @@ void sd_project_unref(ptr<SDProject> project);
 /// sd_sim_new creates a new simulation context for the named model.
 /// If model_name is NULL, the context is created for the default/root
 /// model in the project.
-SDSim *sd_sim_new(ptr<SDProject> project, const char *model_name);
-void sd_sim_ref(SDSim *sim);
-void sd_sim_unref(SDSim *sim);
+ptr<SDSim> sd_sim_new(ptr<SDProject> project, const char *model_name);
+void sd_sim_ref(ptr<SDSim> sim);
+void sd_sim_unref(ptr<SDSim> sim);
 
-int sd_sim_run_to(SDSim *sim, double time);
-int sd_sim_run_to_end(SDSim *sim);
-int sd_sim_get_stepcount(SDSim *sim);
-int sd_sim_get_varcount(SDSim *sim);
-int sd_sim_get_varnames(SDSim *sim, const char **result, size_t max);
+int sd_sim_run_to(ptr<SDSim> sim, double time);
+int sd_sim_run_to_end(ptr<SDSim> sim);
+int sd_sim_get_stepcount(ptr<SDSim> sim);
+int sd_sim_get_varcount(ptr<SDSim> sim);
+int sd_sim_get_varnames(ptr<SDSim> sim, const char **result, size_t max);
 
-int sd_sim_reset(SDSim *sim);
+int sd_sim_reset(ptr<SDSim> sim);
 
-int sd_sim_get_value(SDSim *sim, const char *name, double *result);
-int sd_sim_set_value(SDSim *sim, const char *name, double val);
-int sd_sim_get_series(SDSim *sim, const char *name, double *results, size_t len);
+int sd_sim_get_value(ptr<SDSim> sim, const char *name, double *result);
+int sd_sim_set_value(ptr<SDSim> sim, const char *name, double val);
+int sd_sim_get_series(ptr<SDSim> sim, const char *name, double *results, size_t len);
 
 #ifdef __cplusplus
 }

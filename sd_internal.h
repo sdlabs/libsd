@@ -56,7 +56,7 @@ typedef struct AVar_s AVar;
 typedef struct Node_s Node;
 typedef struct WalkerOps_s WalkerOps;
 
-typedef double (*Fn)(SDSim *s, Node *n, double dt, double t, size_t len, double *args);
+typedef double (*Fn)(ptr<SDSim> s, Node *n, double dt, double t, size_t len, double *args);
 
 
 typedef struct {
@@ -111,7 +111,7 @@ typedef struct {
 	Slice outflows;
 	Slice conns; // AVars of type VAR_REF
 	Table *gf;
-	SDModel *model;
+	ptr<SDModel> model;
 	bool is_nonneg;
 } Var;
 
@@ -166,7 +166,7 @@ struct AVar_s {
 
 	// The model refers to this module's model.  initials, flows &
 	// stocks are also for modules.
-	SDModel *model;
+	ptr<SDModel> model;
 	Slice initials;
 	Slice flows;
 	Slice stocks;
@@ -275,9 +275,9 @@ int project_add_file(ptr<SDProject> p, File *f);
 
 int module_get_referenced_models(Var *v, Slice *result);
 
-SDModel *sd_project_get_model(ptr<SDProject> project, const char *model_name);
-void sd_model_ref(SDModel *m);
-void sd_model_unref(SDModel *m);
+ptr<SDModel> sd_project_get_model(ptr<SDProject> project, const char *model_name);
+void sd_model_ref(ptr<SDModel> m);
+void sd_model_unref(ptr<SDModel> m);
 
 void var_free(Var *v);
 
