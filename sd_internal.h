@@ -241,17 +241,17 @@ typedef struct {
 
 // someone who iterates over nodes
 typedef struct {
-	const WalkerOps *ops;
+	ptr<const WalkerOps> ops;
 	int refcount;
 } Walker;
 
 struct WalkerOps_s {
-	void (*ref)(void *data);
-	void (*unref)(void *data);
-	void (*start)(void *data, ptr<Node> n);
-	Walker *(*start_child)(void *data, ptr<Node> n); // returns w/ refcount of 1
-	void (*end_child)(void *data, ptr<Node> n);
-	void (*end)(void *data);
+	void (*ref)(ptr<void> data);
+	void (*unref)(ptr<void> data);
+	void (*start)(ptr<void> data, ptr<Node> n);
+	ptr<Walker> (*start_child)(ptr<void> data, ptr<Node> n); // returns w/ refcount of 1
+	void (*end_child)(ptr<void> data, ptr<Node> n);
+	void (*end)(ptr<void> data);
 };
 
 /// given integer i, when divided by integer n, if there is a
@@ -279,22 +279,22 @@ ptr<SDModel> sd_project_get_model(ptr<SDProject> project, const char *model_name
 void sd_model_ref(ptr<SDModel> m);
 void sd_model_unref(ptr<SDModel> m);
 
-void var_free(Var *v);
+void var_free(ptr<Var> v);
 
-int lexer_init(Lexer *l, const char *src);
-void lexer_free(Lexer *l); // frees lexer resources, not struct
-int lexer_peek(Lexer *l, Token *t);
-int lexer_nexttok(Lexer *l, Token *t);
+int lexer_init(ptr<Lexer> l, const char *src);
+void lexer_free(ptr<Lexer> l); // frees lexer resources, not struct
+int lexer_peek(ptr<Lexer> l, ptr<Token> t);
+int lexer_nexttok(ptr<Lexer> l, ptr<Token> t);
 
-void token_init(Token *t);
-void token_free(Token *t); // frees token resources, not struct
+void token_init(ptr<Token> t);
+void token_free(ptr<Token> t); // frees token resources, not struct
 
 ptr<Node> node(NodeType ty);
 // nodes are not reference counted.  It is expected that there is a
 // single, sole owner of a node (currently always an AVar), and that
 // if you want to mutate or free the node you must lock on the owner.
 void node_free(ptr<Node> n);
-bool node_walk(Walker *w, ptr<Node> n);
+bool node_walk(ptr<Walker> w, ptr<Node> n);
 
 ptr<AVar> avar(ptr<AVar> module, ptr<Var> v);
 void avar_free(ptr<AVar> av);
@@ -304,7 +304,7 @@ int avar_all_deps(ptr<AVar> av, Slice *all);
 
 ptr<AVar> resolve(ptr<AVar> module, const char *name);
 
-double lookup(Table *t, double index);
+double lookup(ptr<Table> t, double index);
 
 #ifdef __cplusplus
 }

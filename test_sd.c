@@ -983,12 +983,12 @@ typedef struct {
 	Slice s;
 } VerifyWalker;
 
-static VerifyWalker *verify_walker_new(void);
-static void verify_walker_ref(void *data);
-static void verify_walker_unref(void *data);
-static void verify_walker_start(void *data, ptr<Node> n);
-static Walker *verify_walker_start_child(void *data, ptr<Node> n);
-static void verify_walker_end_child(void *data, ptr<Node> n);
+static ptr<VerifyWalker> verify_walker_new(void);
+static void verify_walker_ref(ptr<void> data);
+static void verify_walker_unref(ptr<void> data);
+static void verify_walker_start(ptr<void> data, ptr<Node> n);
+static ptr<Walker> verify_walker_start_child(ptr<void> data, ptr<Node> n);
+static void verify_walker_end_child(ptr<void> data, ptr<Node> n);
 
 static const WalkerOps VERIFY_WALKER_OPS = {
 	.ref = verify_walker_ref,
@@ -999,10 +999,10 @@ static const WalkerOps VERIFY_WALKER_OPS = {
 	.end = NULL,
 };
 
-VerifyWalker *
+ptr<VerifyWalker>
 verify_walker_new(void)
 {
-	VerifyWalker *w = calloc(1, sizeof(*w));
+	ptr<VerifyWalker> w = calloc(1, sizeof(*w));
 
 	if (!w)
 		return NULL;
@@ -1014,16 +1014,16 @@ verify_walker_new(void)
 }
 
 void
-verify_walker_ref(void *data)
+verify_walker_ref(ptr<void> data)
 {
-	VerifyWalker *w = data;
+	ptr<VerifyWalker> w = (ptr<VerifyWalker>)data;
 	__sync_fetch_and_add(&w->w.refcount, 1);
 }
 
 void
-verify_walker_unref(void *data)
+verify_walker_unref(ptr<void> data)
 {
-	VerifyWalker *w = data;
+	ptr<VerifyWalker> w = (ptr<VerifyWalker>)data;
 
 	if (!w || __sync_sub_and_fetch(&w->w.refcount, 1) != 0)
 		return;
@@ -1034,33 +1034,33 @@ verify_walker_unref(void *data)
 		free(ni);
 	}
 	free(w->s.elems);
-	free(w);
+	free((VerifyWalker *)w);
 }
 
 void
-verify_walker_start(void *data, ptr<Node> n)
+verify_walker_start(ptr<void> data, ptr<Node> n)
 {
-	VerifyWalker *vw = data;
-	NodeInfo *ni = calloc(1, sizeof(*ni));
+	ptr<VerifyWalker> vw = (ptr<VerifyWalker>)data;
+	ptr<NodeInfo> ni = calloc(1, sizeof(*ni));
 
 	ni->type = n->type;
 	ni->op = n->op;
 	if (n->sval)
 		ni->sval = strdup(n->sval);
-	slice_append(&vw->s, ni);
+	slice_append(&vw->s, (NodeInfo *)ni);
 }
 
-Walker *
-verify_walker_start_child(void *data, ptr<Node> n)
+ptr<Walker>
+verify_walker_start_child(ptr<void> data, ptr<Node> n)
 {
-	Walker *w = data;
+	ptr<Walker> w = (ptr<Walker>)data;
 	w->ops->ref(w);
 
 	return w;
 }
 
 void
-verify_walker_end_child(void *data, ptr<Node> n)
+verify_walker_end_child(ptr<void> data, ptr<Node> n)
 {
 }
 
@@ -1117,7 +1117,7 @@ test_parse2(void)
 		if (!expr.node)
 			die("no parse tree returned for '%s'\n", test->in);
 
-		VerifyWalker *w = verify_walker_new();
+		ptr<VerifyWalker> w = verify_walker_new();
 
 		node_walk(&w->w, expr.node);
 

@@ -19,12 +19,12 @@ typedef struct {
 	Slice errs;
 } Parser;
 
-static Rune nextrune(Lexer *l);
-static void skip_whitespace(Lexer *l);
+static Rune nextrune(ptr<Lexer> l);
+static void skip_whitespace(ptr<Lexer> l);
 static bool numstart(Rune r);
 static bool identstart(Rune r);
-static int lex_number(Lexer *l, Token *t);
-static int lex_ident(Lexer *l, Token *t);
+static int lex_number(ptr<Lexer> l, ptr<Token> t);
+static int lex_ident(ptr<Lexer> l, ptr<Token> t);
 
 static const char *const RESERVED[] = {
 	"if",
@@ -60,17 +60,17 @@ static const char *const BINARY[] = {
 };
 static const int MAX_BINARY = sizeof(BINARY)/sizeof(BINARY[0]);
 
-static void parser_errorf(Parser *p, const char *s, ...);
-static bool consume_tok(Parser *p, Rune r);
-static bool consume_any(Parser *p, const char *ops, Rune *op);
-static bool consume_reserved(Parser *p, const char *s);
-static bool expr(Parser *p, ptr<Node> *n, int level);
-static bool fact(Parser *p, ptr<Node> *n);
-static bool call(Parser *p, ptr<Node> *n, ptr<Node> fn);
-static bool ident(Parser *p, ptr<Node> *n);
-static bool num(Parser *p, ptr<Node> *n);
+static void parser_errorf(ptr<Parser> p, const char *s, ...);
+static bool consume_tok(ptr<Parser> p, Rune r);
+static bool consume_any(ptr<Parser> p, const char *ops, Rune *op);
+static bool consume_reserved(ptr<Parser> p, const char *s);
+static bool expr(ptr<Parser> p, ptr<Node> *n, int level);
+static bool fact(ptr<Parser> p, ptr<Node> *n);
+static bool call(ptr<Parser> p, ptr<Node> *n, ptr<Node> fn);
+static bool ident(ptr<Parser> p, ptr<Node> *n);
+static bool num(ptr<Parser> p, ptr<Node> *n);
 
-static bool visit(Walker *w, ptr<Node> n);
+static bool visit(ptr<Walker> w, ptr<Node> n);
 
 int
 avar_eqn_parse(ptr<AVar> v)
@@ -111,12 +111,12 @@ out:
 
 
 int
-lexer_init(Lexer *l, const char *src)
+lexer_init(ptr<Lexer> l, const char *src)
 {
 	if (!l || !src)
 		return SD_ERR_UNSPECIFIED;
 
-	memset(l, 0, sizeof(*l));
+	memset((Lexer *)l, 0, sizeof(*l));
 	l->orig = src;
 	l->src = strdup(src);
 	int err = utf8_tolower(&l->src);
@@ -130,7 +130,7 @@ lexer_init(Lexer *l, const char *src)
 }
 
 void
-lexer_free(Lexer *l)
+lexer_free(ptr<Lexer> l)
 {
 	if (!l)
 		return;
@@ -142,13 +142,13 @@ lexer_free(Lexer *l)
 }
 
 void
-token_init(Token *t)
+token_init(ptr<Token> t)
 {
-	memset(t, 0, sizeof(*t));
+	memset((Token *)t, 0, sizeof(*t));
 }
 
 void
-token_free(Token *t)
+token_free(ptr<Token> t)
 {
 	if (!t)
 		return;
@@ -160,7 +160,7 @@ token_free(Token *t)
 }
 
 int
-lexer_peek(Lexer *l, Token *t)
+lexer_peek(ptr<Lexer> l, ptr<Token> t)
 {
 	int err = SD_ERR_NO_ERROR;
 
@@ -173,7 +173,7 @@ lexer_peek(Lexer *l, Token *t)
 	}
 
 	if (l->havetpeek) {
-		memcpy(t, &l->tpeek, sizeof(*t));
+		memcpy((Token *)t, &l->tpeek, sizeof(*t));
 		// fixup pointer
 		if (l->tpeek.start == l->tpeek.buf)
 			t->start = t->buf;
@@ -184,7 +184,7 @@ lexer_peek(Lexer *l, Token *t)
 }
 
 int
-lexer_nexttok(Lexer *l, Token *t)
+lexer_nexttok(ptr<Lexer> l, ptr<Token> t)
 {
 	int len;
 	int pos;
@@ -197,7 +197,7 @@ lexer_nexttok(Lexer *l, Token *t)
 			return SD_ERR_UNSPECIFIED;
 		token_free(t);
 
-		memcpy(t, &l->tpeek, sizeof(*t));
+		memcpy((Token *)t, &l->tpeek, sizeof(*t));
 		// fixup pointer
 		if (l->tpeek.start == l->tpeek.buf)
 			t->start = t->buf;
@@ -275,7 +275,7 @@ lexer_nexttok(Lexer *l, Token *t)
 }
 
 Rune
-nextrune(Lexer *l)
+nextrune(ptr<Lexer> l)
 {
 	if (l->pos < l->len) {
 		l->pos += runelen(l->peek);
@@ -290,7 +290,7 @@ nextrune(Lexer *l)
 }
 
 void
-skip_whitespace(Lexer *l)
+skip_whitespace(ptr<Lexer> l)
 {
 	bool in_comment = false;
 	do {
@@ -325,7 +325,7 @@ identstart(Rune r)
 }
 
 int
-lex_number(Lexer *l, Token *t)
+lex_number(ptr<Lexer> l, ptr<Token> t)
 {
 	Rune r;
 	int pos = l->pos;
@@ -376,7 +376,7 @@ lex_number(Lexer *l, Token *t)
 }
 
 int
-lex_ident(Lexer *l, Token *t)
+lex_ident(ptr<Lexer> l, ptr<Token> t)
 {
 	Rune r;
 	bool quoted = l->peek == '"';
@@ -442,7 +442,7 @@ lex_ident(Lexer *l, Token *t)
 }
 
 bool
-expr(Parser *p, ptr<Node> *n, int level)
+expr(ptr<Parser> p, ptr<Node> *n, int level)
 {
 	Token t;
 	int err;
@@ -510,7 +510,7 @@ out:
 }
 
 bool
-fact(Parser *p, ptr<Node> *n)
+fact(ptr<Parser> p, ptr<Node> *n)
 {
 	ptr<Node> x, l, r, cond;
 	Rune op;
@@ -617,7 +617,7 @@ out:
 }
 
 bool
-call(Parser *p, ptr<Node> *n, ptr<Node> fn)
+call(ptr<Parser> p, ptr<Node> *n, ptr<Node> fn)
 {
 	ptr<Node> arg = NULL;
 	ptr<Node> x = node(N_CALL);
@@ -658,7 +658,7 @@ error:
 }
 
 bool
-ident(Parser *p, ptr<Node> *n)
+ident(ptr<Parser> p, ptr<Node> *n)
 {
 	Token t;
 	ptr<Node> x;
@@ -687,7 +687,7 @@ error:
 }
 
 bool
-num(Parser *p, ptr<Node> *n)
+num(ptr<Parser> p, ptr<Node> *n)
 {
 	Token t;
 	ptr<Node> x;
@@ -714,7 +714,7 @@ error:
 }
 
 bool
-consume_reserved(Parser *p, const char *s)
+consume_reserved(ptr<Parser> p, const char *s)
 {
 	Token t;
 	int err;
@@ -735,7 +735,7 @@ out:
 }
 
 bool
-consume_tok(Parser *p, Rune r)
+consume_tok(ptr<Parser> p, Rune r)
 {
 	Token t;
 	Rune tr = 0;
@@ -758,7 +758,7 @@ out:
 }
 
 bool
-consume_any(Parser *p, const char *ops, Rune *op)
+consume_any(ptr<Parser> p, const char *ops, Rune *op)
 {
 	size_t len, pos, n;
 	Rune r;
@@ -777,7 +777,7 @@ consume_any(Parser *p, const char *ops, Rune *op)
 }
 
 void
-parser_errorf(Parser *p, const char *fmt, ...)
+parser_errorf(ptr<Parser> p, const char *fmt, ...)
 {
 	char *err = calloc(MAX_ERR_LEN, 1);
 	// FIXME: no mem
@@ -826,9 +826,9 @@ node_free(ptr<Node> n)
 }
 
 bool
-visit(Walker *w, ptr<Node> n)
+visit(ptr<Walker> w, ptr<Node> n)
 {
-	Walker *wc = NULL;
+	ptr<Walker> wc = NULL;
 	bool ok = true;
 
 	w->ops->start(w, n);
@@ -906,7 +906,7 @@ visit(Walker *w, ptr<Node> n)
 }
 
 bool
-node_walk(Walker *w, ptr<Node> n)
+node_walk(ptr<Walker> w, ptr<Node> n)
 {
 	bool ok;
 

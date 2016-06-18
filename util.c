@@ -162,7 +162,7 @@ round_up(size_t i, size_t n)
 }
 
 double
-lookup(Table *t, double index)
+lookup(ptr<Table> t, double index)
 {
 	size_t len = t->len;
 	if (unlikely(t->len == 0))

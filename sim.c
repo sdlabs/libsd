@@ -45,12 +45,12 @@ static int module_add_to_runlists(ptr<AVar> module, ptr<AVar> av);
 
 static const char *avar_qual_name(ptr<AVar> av);
 
-static AVarWalker *avar_walker_new(ptr<AVar> module, ptr<AVar> av);
-static void avar_walker_ref(void *data);
-static void avar_walker_unref(void *data);
-static void avar_walker_start(void *data, ptr<Node> n);
-static Walker *avar_walker_start_child(void *data, ptr<Node> n);
-static void avar_walker_end_child(void *data, ptr<Node> );
+static ptr<AVarWalker> avar_walker_new(ptr<AVar> module, ptr<AVar> av);
+static void avar_walker_ref(ptr<void> data);
+static void avar_walker_unref(ptr<void> data);
+static void avar_walker_start(ptr<void> data, ptr<Node> n);
+static ptr<Walker> avar_walker_start_child(ptr<void> data, ptr<Node> n);
+static void avar_walker_end_child(ptr<void> data, ptr<Node> );
 
 static const WalkerOps AVAR_WALKER_OPS = {
 	.ref = avar_walker_ref,
@@ -146,10 +146,10 @@ avar_qual_name(ptr<AVar> av)
 	return av->qual_name;
 }
 
-AVarWalker *
+ptr<AVarWalker>
 avar_walker_new(ptr<AVar> module, ptr<AVar> av)
 {
-	AVarWalker *w = calloc(1, sizeof(*w));
+	ptr<AVarWalker> w = calloc(1, sizeof(*w));
 
 	if (!w)
 		return NULL;
@@ -163,41 +163,41 @@ avar_walker_new(ptr<AVar> module, ptr<AVar> av)
 }
 
 void
-avar_walker_ref(void *data)
+avar_walker_ref(ptr<void> data)
 {
-	AVarWalker *w = data;
+	ptr<AVarWalker> w = (ptr<AVarWalker>)data;
 	__sync_fetch_and_add(&w->w.refcount, 1);
 }
 
 void
-avar_walker_unref(void *data)
+avar_walker_unref(ptr<void> data)
 {
-	AVarWalker *w = data;
+	ptr<AVarWalker> w = (ptr<AVarWalker>)data;
 
 	if (!w || __sync_sub_and_fetch(&w->w.refcount, 1) != 0)
 		return;
 
-	free(w);
+	free((AVarWalker *)w);
 }
 
 void
-avar_walker_start(void *data, ptr<Node> n)
+avar_walker_start(ptr<void> data, ptr<Node> n)
 {
-	AVarWalker *avw = data;
+	ptr<AVarWalker> w = (ptr<AVarWalker>)data;
 	ptr<AVar> dep;
 
-	avw->curr = n;
+	w->curr = n;
 
 	switch (n->type) {
 	case N_IDENT:
-		dep = resolve(avw->module, n->sval);
+		dep = resolve(w->module, n->sval);
 		if (!dep) {
 			printf("resolve failed for %s\n", n->sval);
 			// TODO: error
 			return;
 		}
 		n->av = dep;
-		slice_append(&avw->av->direct_deps, (AVar *)dep);
+		slice_append(&w->av->direct_deps, (AVar *)dep);
 		break;
 	case N_FLOATLIT:
 		n->fval = atof(n->sval);
@@ -217,30 +217,30 @@ avar_walker_start(void *data, ptr<Node> n)
 	}
 }
 
-Walker *
-avar_walker_start_child(void *data, ptr<Node> n)
+ptr<Walker>
+avar_walker_start_child(ptr<void> data, ptr<Node> n)
 {
-	AVarWalker *avw = data;
-	ptr<Node> curr = avw->curr;
+	ptr<AVarWalker> w = (ptr<AVarWalker>)data;
+	ptr<Node> curr = w->curr;
 
 	// skip trying to resolve function name identifiers for calls
 	// a second time - already handled in avar_walker_start above
 	if (curr->type == N_CALL && n == curr->left)
 		return NULL;
 
-	avw->w.ops->ref(&avw->w);
-	return &avw->w;
+	w->w.ops->ref(&w->w);
+	return &w->w;
 }
 
 void
-avar_walker_end_child(void *data, ptr<Node> n)
+avar_walker_end_child(ptr<void> data, ptr<Node> n)
 {
 }
 
 int
 avar_init(ptr<AVar> av, ptr<AVar> module)
 {
-	AVarWalker *w;
+	ptr<AVarWalker> w;
 	bool ok;
 
 	w = NULL;

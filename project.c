@@ -193,7 +193,7 @@ sd_model_unref(ptr<SDModel> m)
 }
 
 void
-var_free(Var *v)
+var_free(ptr<Var> v)
 {
 	if (!v)
 		return;
@@ -214,5 +214,5 @@ var_free(Var *v)
 	free(v->src);
 	free(v->gf);
 	sd_model_unref(v->model);
-	free(v);
+	free((Var *)v);
 }

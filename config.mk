@@ -15,10 +15,11 @@ INCS := -Ilibutf -Iexpat/lib
 OPT       = -Os
 #COVFLAGS = -ftest-coverage -fprofile-arcs
 
-STATIC   = -static
+#STATIC   = -static
 
 CPPFLAGS  = -DVERSION=\"$(VERSION)\" -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=600
-CFLAGS   += $(STATIC) -g -std=c11 $(OPT) -pthread $(WARNFLAGS) $(INCS) $(CPPFLAGS)
+CFLAGS   += $(STATIC) -std=c11 $(OPT) -pthread $(WARNFLAGS) $(INCS) $(CPPFLAGS)
+#CFLAGS  += -g
 CFLAGS   += -fPIC
 #CFLAGS  += -flto
 #CFLAGS  += -Wunsafe-loop-optimizations
