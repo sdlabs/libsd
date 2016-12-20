@@ -1160,5 +1160,46 @@ test_hash_table(void)
 	if (!ht)
 		die("hash_table_new failed\n");
 
+	if (sd_hash_table_size(ht) != 0)
+		die("expected size to be 0\n");
+
 	sd_hash_table_insert(ht, (SDHashKey)2, (SDHashVal)-4);
+
+	if (sd_hash_table_size(ht) != 1)
+		die("expected size to be 1\n");
+
+	bool ok = false;
+	long val = (long)sd_hash_table_lookup(ht, (SDHashKey)2, &ok);
+	if (!ok || val != -4)
+		die("expected value lookup to work\n");
+
+	sd_hash_table_insert(ht, (SDHashKey)2, (SDHashVal)5000);
+
+	if (sd_hash_table_size(ht) != 1)
+		die("expected size to be 1\n");
+
+	ok = false;
+	val = (long)sd_hash_table_lookup(ht, (SDHashKey)2, &ok);
+	if (!ok || val != 5000)
+		die("expected value lookup to work\n");
+
+	sd_hash_table_insert(ht, (SDHashKey)20000, (SDHashVal)1999);
+
+	if (sd_hash_table_size(ht) != 2)
+		die("expected size to be 2\n");
+
+	ok = false;
+	val = (long)sd_hash_table_lookup(ht, (SDHashKey)20000, &ok);
+	if (!ok || val != 1999)
+		die("expected value lookup to work\n");
+
+	// non-existant key
+	sd_hash_table_remove(ht, (SDHashKey)1999);
+	if (sd_hash_table_size(ht) != 2)
+		die("expected size to be 2\n");
+
+	sd_hash_table_remove(ht, (SDHashKey)2);
+	sd_hash_table_remove(ht, (SDHashKey)20000);
+	if (sd_hash_table_size(ht) != 0)
+		die("expected size to be 0\n");
 }

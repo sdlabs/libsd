@@ -62,8 +62,9 @@ ht_index(SDHashTable *ht, const void *key)
 	uint64_t h1 = ht->hash_fn(ht->k1, key);
 	uint64_t h2 = ht->hash_fn(ht->k2, key);
 
-	for (size_t i = 0; i < tbl_size*3; i++) {
+	for (size_t i = 0; i < tbl_size*16; i++) {
 		size_t hash = (h1 + i*h2) % tbl_size;
+		//printf("hash: %zu (%zu + %zu * %zu) %% %zu)\n", hash, h1, i, h2, tbl_size);
 		Entry *entry = &tbl[hash];
 		if (!entry->in_use || ht->equal_fn(key, entry->key))
 			return hash;
@@ -96,10 +97,10 @@ hash_long(uint8_t *k, const void *vkey)
 static bool
 equal_long(const void *va, const void *vb)
 {
-	const long *a = va;
-	const long *b = vb;
+	const long a = (long)va;
+	const long b = (long)vb;
 
-	return *a == *b;
+	return a == b;
 }
 
 
@@ -161,10 +162,12 @@ sd_hash_table_insert(SDHashTable *ht, const void *key, void *val)
 	if (i < 0)
 		sd_die("expected ht_index to be gte 0\n");
 
-	ht->tbl[i].in_use = true;
+	if (!ht->tbl[i].in_use) {
+		ht->tbl[i].in_use = true;
+		ht->size++;
+	}
 	ht->tbl[i].key = key;
 	ht->tbl[i].val = val;
-	ht->size++;
 }
 
 void *
