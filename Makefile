@@ -1,7 +1,7 @@
 include config.mk
 
 
-SRC = util.c xml.c project.c parse.c sim.c
+SRC = util.c xml.c project.c parse.c sim.c hash_table.c
 OBJ = $(SRC:.c=.o)
 
 LIB = libsd.a
@@ -9,7 +9,7 @@ DLIB = libsd.so
 INC = sd.h
 EXE = mdl$(EXTENSION)
 
-HEADERS = sd.h sd_internal.h
+HEADERS = sd.h sd_internal.h hash_table.h
 
 CONFIG = Makefile
 

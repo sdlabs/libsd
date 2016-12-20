@@ -12,6 +12,7 @@ extern "C" {
 #include <stdio.h>
 
 #include "utf.h"
+#include "hash_table.h"
 
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
