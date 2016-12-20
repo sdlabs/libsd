@@ -1232,4 +1232,6 @@ test_hash_table(void)
 		die("key total check mismatch: %d != %d\n", key_total, key_total_check);
 	if (val_total != val_total_check)
 		die("val total check mismatch: %d != %d\n", val_total, val_total_check);
+
+	sd_hash_table_unref(ht);
 }
