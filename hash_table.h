@@ -16,15 +16,15 @@ extern "C" {
 void sd_die(const char *, ...);
 
 typedef struct SDHashTable_s SDHashTable;
-typedef struct SDHashTableIter_s SDHashTableIter;
 
+// declared here so iterators can be stack allocated.
 struct SDHashTableIter_s {
 	SDHashTable *ht;
 	size_t i;
-	// for consistency checking
-	size_t size;
-	size_t tbl_size;
+	size_t size;     // for consistency checking
+	size_t tbl_size; // for consistency checking
 };
+typedef struct SDHashTableIter_s SDHashTableIter;
 
 typedef enum {
 	SD_HASH_LONG_KEY    = 1<<1,
