@@ -1,7 +1,7 @@
 include config.mk
 
 
-SRC = util.c xml.c project.c parse.c sim.c hash_table.c
+SRC = util.c xml.c project.c parse.c sim.c hash_table.c siphash.c
 OBJ = $(SRC:.c=.o)
 
 LIB = libsd.a

@@ -14,8 +14,21 @@ extern "C" {
 #include "utf.h"
 
 typedef struct SDHashTable_s SDHashTable;
-	
-SDHashTable *sd_hash_table_new();
+
+typedef uint32_t (*SDHashFn) (const void *key);
+typedef bool (*SDEqualFn) (const void *a, const void *b);
+typedef void (*SDDerefFn) (void *data);
+
+SDHashTable *sd_hash_table_new(SDHashFn hash_fn,
+			       SDEqualFn equal_fn,
+			       SDDerefFn key_removed_fn,
+			       SDDerefFn value_removed_fn);
+
+void sd_hash_table_insert(SDHashTable *ht, const void *key, const void *val);
+void *sd_hash_table_lookup(SDHashTable *ht, const void *key, bool *ok);
+void sd_hash_table_remove(SDHashTable *ht, const void *key);
+bool sd_hash_table_contains(SDHashTable *ht, const void *key);
+size_t sd_hash_table_size(SDHashTable *ht);
 
 #ifdef __cplusplus
 }
