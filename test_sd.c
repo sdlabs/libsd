@@ -1203,7 +1203,33 @@ test_hash_table(void)
 	if (sd_hash_table_size(ht) != 0)
 		die("expected size to be 0\n");
 
+	long key_total = 0;
+	long val_total = 0;
 	for (size_t i = 0; i < 128; i++) {
-		sd_hash_table_insert(ht, (SDHashKey)(i*7), (SDHashVal)(i*13));
+		long key = i*7;
+		long val = i*13;
+		sd_hash_table_insert(ht, (SDHashKey)key, (SDHashVal)val);
+		key_total += key;
+		val_total += val;
 	}
+
+	long key_total_check = 0;
+	long val_total_check = 0;
+	long key = 0;
+	val = 0;
+
+	SDHashTableIter it;
+	sd_hash_table_iter_init(&it, ht);
+	while (sd_hash_table_iter_next(&it, (SDHashKey *)&key, (SDHashVal)&val)) {
+		key_total_check += key;
+		val_total_check += val;
+	}
+
+	if (key_total_check == 0 || val_total_check == 0)
+		die("expected total checks to be non-zero\n");
+
+	if (key_total != key_total_check)
+		die("key total check mismatch: %d != %d\n", key_total, key_total_check);
+	if (val_total != val_total_check)
+		die("val total check mismatch: %d != %d\n", val_total, val_total_check);
 }

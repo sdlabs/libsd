@@ -16,6 +16,15 @@ extern "C" {
 void sd_die(const char *, ...);
 
 typedef struct SDHashTable_s SDHashTable;
+typedef struct SDHashTableIter_s SDHashTableIter;
+
+struct SDHashTableIter_s {
+	SDHashTable *ht;
+	size_t i;
+	// for consistency checking
+	size_t size;
+	size_t tbl_size;
+};
 
 typedef enum {
 	SD_HASH_LONG_KEY    = 1<<1,
@@ -23,19 +32,25 @@ typedef enum {
 	SD_HASH_POINTER_KEY = 1<<3,
 } SDHashTableType;
 
-typedef void* SDHashKey;
+typedef const void* SDHashKey;
 typedef void* SDHashVal;
+typedef void (*SDConstDerefFn) (const void *data);
 typedef void (*SDDerefFn) (void *data);
 
 SDHashTable *sd_hash_table_new(SDHashTableType type,
-			       SDDerefFn key_removed_fn,
+			       SDConstDerefFn key_removed_fn,
 			       SDDerefFn value_removed_fn);
+SDHashTable *sd_hash_table_ref(SDHashTable *ht);
+void sd_hash_table_unref(SDHashTable *ht);
 
 void sd_hash_table_insert(SDHashTable *ht, const void *key, void *val);
 void *sd_hash_table_lookup(SDHashTable *ht, const void *key, bool *ok);
 void sd_hash_table_remove(SDHashTable *ht, const void *key);
 bool sd_hash_table_contains(SDHashTable *ht, const void *key);
 size_t sd_hash_table_size(SDHashTable *ht);
+
+void sd_hash_table_iter_init(SDHashTableIter *it, SDHashTable *ht);
+bool sd_hash_table_iter_next(SDHashTableIter *it, SDHashKey *key, SDHashVal *val);
 
 #ifdef __cplusplus
 }

@@ -31,13 +31,14 @@ typedef struct Entry_s Entry;
 struct SDHashTable_s {
 	SDHashFn hash_fn;
 	SDEqualFn equal_fn;
-	SDDerefFn key_removed_fn;
+	SDConstDerefFn key_removed_fn;
 	SDDerefFn value_removed_fn;
 	uint8_t k1[KEY_SIZE];
 	uint8_t k2[KEY_SIZE];
 	size_t size;
 	size_t tbl_size;
 	Entry *tbl;
+	int32_t refcount;
 };
 
 void __attribute__((noreturn))
@@ -83,7 +84,7 @@ hash_long(uint8_t *k, const void *vkey)
 	uint8_t key_buf[sizeof(long)];
 	memcpy(key_buf, &key, sizeof(key_buf));
 
-	// FNV 1-a
+	// FNV 1-a hash function
 #define FNV_offset_basis 0xcbf29ce484222325
 #define FNV_prime        0x100000001b3
 
@@ -112,7 +113,7 @@ equal_long(const void *va, const void *vb)
 
 SDHashTable *
 sd_hash_table_new(SDHashTableType type,
-		  SDDerefFn key_removed_fn,
+		  SDConstDerefFn key_removed_fn,
 		  SDDerefFn value_removed_fn)
 {
 	SDHashTable *ht = calloc(1, sizeof(*ht));
@@ -159,7 +160,27 @@ sd_hash_table_new(SDHashTableType type,
 		return NULL;
 	}
 
+	ht->refcount = 1;
+
 	return ht;
+}
+
+SDHashTable *
+sd_hash_table_ref(SDHashTable *ht)
+{
+	__sync_fetch_and_add(&ht->refcount, 1);
+	return ht;
+}
+
+void
+sd_hash_table_unref(SDHashTable *ht)
+{
+	if (!ht)
+		return;
+	if (__sync_sub_and_fetch(&ht->refcount, 1) == 0) {
+		free(ht->tbl);
+		free(ht);
+	}
 }
 
 static void
@@ -275,4 +296,49 @@ sd_hash_table_contains(SDHashTable *ht, const void *key)
 size_t
 sd_hash_table_size(SDHashTable *ht) {
 	return ht->size;
+}
+
+void
+sd_hash_table_iter_init(SDHashTableIter *it, SDHashTable *ht)
+{
+	if (!it || !ht)
+		return;
+
+	memset(it, 0, sizeof(*it));
+
+	it->ht = ht;
+	it->i = 0;
+	it->size = ht->size;
+	it->tbl_size = ht->tbl_size;
+}
+
+bool
+sd_hash_table_iter_next(SDHashTableIter *it, SDHashKey *key, SDHashVal *val)
+{
+	if (!it || !it->ht)
+		return false;
+
+	SDHashTable *ht = it->ht;
+	if (it->size != ht->size || it->tbl_size != ht->tbl_size) {
+		fprintf(stderr, "WARNING: hash table modified while iterating, this may cause crashes.\n");
+		return false;
+	}
+
+	if (it->i >= it->tbl_size)
+		return false;
+
+	size_t tbl_size = it->tbl_size;
+	for (; it->i < tbl_size; it->i++) {
+		Entry *entry = &ht->tbl[it->i];
+		if (!entry->in_use)
+			continue;
+		if (key)
+			*key = entry->key;
+		if (val)
+			*val = entry->val;
+
+		it->i++;
+		return true;
+	}
+	return false;
 }
