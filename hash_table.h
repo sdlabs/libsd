@@ -13,18 +13,25 @@ extern "C" {
 
 #include "utf.h"
 
+void sd_die(const char *, ...);
+
 typedef struct SDHashTable_s SDHashTable;
 
-typedef uint32_t (*SDHashFn) (const void *key);
-typedef bool (*SDEqualFn) (const void *a, const void *b);
+typedef enum {
+	SD_HASH_LONG_KEY    = 1<<1,
+	SD_HASH_STRING_KEY  = 1<<2,
+	SD_HASH_POINTER_KEY = 1<<3,
+} SDHashTableType;
+
+typedef void* SDHashKey;
+typedef void* SDHashVal;
 typedef void (*SDDerefFn) (void *data);
 
-SDHashTable *sd_hash_table_new(SDHashFn hash_fn,
-			       SDEqualFn equal_fn,
+SDHashTable *sd_hash_table_new(SDHashTableType type,
 			       SDDerefFn key_removed_fn,
 			       SDDerefFn value_removed_fn);
 
-void sd_hash_table_insert(SDHashTable *ht, const void *key, const void *val);
+void sd_hash_table_insert(SDHashTable *ht, const void *key, void *val);
 void *sd_hash_table_lookup(SDHashTable *ht, const void *key, bool *ok);
 void sd_hash_table_remove(SDHashTable *ht, const void *key);
 bool sd_hash_table_contains(SDHashTable *ht, const void *key);

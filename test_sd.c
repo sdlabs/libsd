@@ -6,7 +6,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> // intptr_t
@@ -14,7 +13,7 @@
 #include "sd.h"
 #include "sd_internal.h"
 
-static void die(const char *, ...);
+#define die(...) sd_die(__VA_ARGS__)
 static bool same(double a, double b);
 
 static void test_slice(void);
@@ -29,6 +28,7 @@ static void test_lex(void);
 static void test_table(void);
 static void test_parse2(void);
 static void test_normalize_quoted(void);
+static void test_hash_table(void);
 
 typedef void (*test_f)(void);
 
@@ -45,6 +45,7 @@ static test_f TESTS[] = {
 	test_table,
 	test_parse2,
 	test_normalize_quoted,
+	test_hash_table,
 };
 
 int
@@ -53,18 +54,6 @@ main(int argc, const char *argv[])
 	for (size_t i = 0; i < sizeof(TESTS)/sizeof(*TESTS); i++)
 		TESTS[i]();
 	return 0;
-}
-
-void __attribute__((noreturn))
-die(const char *fmt, ...)
-{
-	va_list args;
-
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-
-	exit(EXIT_FAILURE);
 }
 
 bool
@@ -1162,4 +1151,14 @@ test_normalize_quoted(void)
 	if (strcmp(normalized, "å_b") != 0)
 		die("normalize '%s' != '%s'\n", normalized, "å_b");
 	free(normalized);
+}
+
+void
+test_hash_table(void)
+{
+	SDHashTable *ht = sd_hash_table_new(SD_HASH_LONG_KEY, NULL, NULL);
+	if (!ht)
+		die("hash_table_new failed\n");
+
+	sd_hash_table_insert(ht, (SDHashKey)2, (SDHashVal)-4);
 }
