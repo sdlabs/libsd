@@ -1202,4 +1202,8 @@ test_hash_table(void)
 	sd_hash_table_remove(ht, (SDHashKey)20000);
 	if (sd_hash_table_size(ht) != 0)
 		die("expected size to be 0\n");
+
+	for (size_t i = 0; i < 128; i++) {
+		sd_hash_table_insert(ht, (SDHashKey)(i*7), (SDHashVal)(i*13));
+	}
 }

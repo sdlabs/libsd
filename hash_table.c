@@ -16,9 +16,10 @@ int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
 typedef size_t (*SDHashFn) (uint8_t *k, const void *key);
 typedef bool (*SDEqualFn) (const void *a, const void *b);
 
-#define KEY_SIZE  16
-#define INIT_SIZE 8
-#define NLONG     (KEY_SIZE/(sizeof (unsigned int)))
+#define LOAD_FACTOR 0.6
+#define KEY_SIZE    16
+#define INIT_SIZE   8
+#define NLONG       (KEY_SIZE/(sizeof (unsigned int)))
 
 struct Entry_s {
 	bool in_use;
@@ -60,14 +61,15 @@ ht_index(SDHashTable *ht, const void *key)
 	Entry *tbl = ht->tbl;
 
 	uint64_t h1 = ht->hash_fn(ht->k1, key);
-	uint64_t h2 = ht->hash_fn(ht->k2, key);
 
 	for (size_t i = 0; i < tbl_size*16; i++) {
-		size_t hash = (h1 + i*h2) % tbl_size;
-		//printf("hash: %zu (%zu + %zu * %zu) %% %zu)\n", hash, h1, i, h2, tbl_size);
+		size_t hash = (h1 + i) % tbl_size;
+		printf("hash: %zu (%zu + %zu) %% %zu)\n", hash, h1, i, tbl_size);
 		Entry *entry = &tbl[hash];
-		if (!entry->in_use || ht->equal_fn(key, entry->key))
+		if (!entry->in_use || ht->equal_fn(key, entry->key)) {
+			printf("\tOK\n");
 			return hash;
+		}
 	}
 
 	return -1;
@@ -81,17 +83,21 @@ hash_long(uint8_t *k, const void *vkey)
 	uint8_t key_buf[sizeof(long)];
 	memcpy(key_buf, &key, sizeof(key_buf));
 
-	uint8_t hash_buf[8];
-	memset(hash_buf, 0, sizeof(hash_buf));
+	// FNV 1-a
+#define FNV_offset_basis 0xcbf29ce484222325
+#define FNV_prime        0x100000001b3
 
-	siphash(key_buf, sizeof(key_buf), k, hash_buf, sizeof(hash_buf));
+	uint64_t hash = FNV_offset_basis;
+	for (size_t i = 0; i < sizeof(long); i++) {
+		hash ^= key_buf[i];
+		hash *= FNV_prime;
+	}
+	for (size_t i = 0; i < 16; i++) {
+		hash ^= k[i];
+		hash *= FNV_prime;
+	}
 
-	uint64_t result;
-	memcpy(&result, hash_buf, sizeof(result));
-
-	assert(sizeof(result) == sizeof(hash_buf));
-
-	return result;
+	return hash;
 }
 
 static bool
@@ -110,6 +116,8 @@ sd_hash_table_new(SDHashTableType type,
 		  SDDerefFn value_removed_fn)
 {
 	SDHashTable *ht = calloc(1, sizeof(*ht));
+	if (!ht)
+		return NULL;
 
 	switch (type) {
 	case SD_HASH_LONG_KEY:
@@ -146,8 +154,43 @@ sd_hash_table_new(SDHashTableType type,
 
 	ht->tbl_size = INIT_SIZE;
 	ht->tbl = calloc(INIT_SIZE, sizeof(Entry));
+	if (!ht->tbl) {
+		free(ht);
+		return NULL;
+	}
 
 	return ht;
+}
+
+static void
+ht_double_table(SDHashTable *ht)
+{
+	size_t old_size = ht->size;
+	Entry *old_tbl = ht->tbl;
+	size_t old_tbl_size = ht->tbl_size;
+
+	fprintf(stderr, "table_double to %zu!\n", ht->tbl_size*2);
+
+	ht->size = 0;
+	ht->tbl_size *= 2;
+	ht->tbl = calloc(ht->tbl_size, sizeof(Entry));
+	if (!ht->tbl)
+		sd_die("failed to alloc for table doubling\n");
+
+	for (size_t i = 0; i < old_tbl_size; i++) {
+		if (!old_tbl[i].in_use)
+			continue;
+
+		const void *key = old_tbl[i].key;
+		void *val = old_tbl[i].val;
+
+		sd_hash_table_insert(ht, key, val);
+	}
+
+	free(old_tbl);
+
+	if (ht->size != old_size)
+		sd_die("expected size to be invariant after doubling\n");
 }
 
 void
@@ -156,18 +199,21 @@ sd_hash_table_insert(SDHashTable *ht, const void *key, void *val)
 	if (!ht)
 		return;
 
-	// TODO: grow the table if above load factor
 	
 	ssize_t i = ht_index(ht, key);
 	if (i < 0)
-		sd_die("expected ht_index to be gte 0\n");
+		sd_die("insert: expected ht_index to be gte 0\n");
+
+	ht->tbl[i].key = key;
+	ht->tbl[i].val = val;
 
 	if (!ht->tbl[i].in_use) {
 		ht->tbl[i].in_use = true;
 		ht->size++;
+
+		if (((float)(ht->size + 1))/ht->tbl_size > LOAD_FACTOR)
+			ht_double_table(ht);
 	}
-	ht->tbl[i].key = key;
-	ht->tbl[i].val = val;
 }
 
 void *
@@ -178,7 +224,7 @@ sd_hash_table_lookup(SDHashTable *ht, const void *key, bool *ok)
 
 	ssize_t i = ht_index(ht, key);
 	if (i < 0)
-		sd_die("expected ht_index to be gte 0\n");
+		sd_die("lookup: expected ht_index to be gte 0\n");
 
 	if (!ht->tbl[i].in_use)
 		goto out;
@@ -196,7 +242,7 @@ sd_hash_table_remove(SDHashTable *ht, const void *key)
 {
 	ssize_t i = ht_index(ht, key);
 	if (i < 0)
-		sd_die("expected ht_index to be gte 0\n");
+		sd_die("remove: expected ht_index to be gte 0\n");
 
 	if (ht->tbl[i].in_use) {
 		ht->tbl[i].in_use = false;
@@ -221,7 +267,7 @@ sd_hash_table_contains(SDHashTable *ht, const void *key)
 {
 	ssize_t i = ht_index(ht, key);
 	if (i < 0)
-		sd_die("expected ht_index to be gte 0\n");
+		sd_die("contians: expected ht_index to be gte 0\n");
 
 	return ht->tbl[i].in_use;
 }
