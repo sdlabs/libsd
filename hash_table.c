@@ -220,7 +220,6 @@ sd_hash_table_insert(SDHashTable *ht, const void *key, void *val)
 	if (!ht)
 		return;
 
-	
 	ssize_t i = ht_index(ht, key);
 	if (i < 0)
 		sd_die("insert: expected ht_index to be gte 0\n");
@@ -247,12 +246,11 @@ sd_hash_table_lookup(SDHashTable *ht, const void *key, bool *ok)
 	if (i < 0)
 		sd_die("lookup: expected ht_index to be gte 0\n");
 
-	if (!ht->tbl[i].in_use)
-		goto out;
+	if (ht->tbl[i].in_use) {
+		found = true;
+		val = ht->tbl[i].val;
+	}
 
-	found = true;
-	val = ht->tbl[i].val;
-out:
 	if (ok)
 		*ok = found;
 	return val;
