@@ -196,6 +196,11 @@ struct SDSim_s {
 	size_t step;
 	size_t save_step;
 	size_t save_every;
+
+	Slice adj_avar; // adjacency_offset -> avar
+	// keep adj_list sorted by offset, worst case access is O(lg(max_degree))
+	Slice adj_list; // adjacency list representation of graph: [][]AdjOffset
+
 	int refcount;
 };
 
@@ -270,6 +275,7 @@ char *canonicalize(const char *n);
 int slice_make(Slice *s, size_t len, size_t cap);
 int slice_append(Slice *s, void *e);
 int slice_extend(Slice *s, Slice *other);
+void slice_sort(Slice *s, int (*cmp)(const void *a, const void *b, void *data), void *data);
 
 int project_parse_file(SDProject *p, FILE *f);
 int project_add_file(SDProject *p, File *f);
