@@ -12,19 +12,32 @@ INCS := -Ilibutf -Iexpat/lib
 
 #EXTENSION = '.exe'
 
-OPT       = -O1
+OPT       = -O0
 #COVFLAGS = -ftest-coverage -fprofile-arcs
 
 #STATIC   = -static
 
+COMMON_FLAGS = \
+	-pipe \
+	-fno-builtin-malloc \
+	-fno-omit-frame-pointer \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-ffunction-sections \
+	-fdata-sections \
+	-Werror=implicit-function-declaration \
+	-Werror=implicit-int \
+	-Werror=pointer-sign \
+	-Werror=pointer-arith
+
 CPPFLAGS  = -DVERSION=\"$(VERSION)\" -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=600
-CFLAGS   += $(STATIC) -g -std=c11 $(OPT) -pthread $(WARNFLAGS) $(INCS) $(CPPFLAGS)
+CFLAGS   += $(STATIC) -g -std=c11 $(OPT) -pthread $(WARNFLAGS) $(INCS) $(CPPFLAGS) $(COMMON_FLAGS)
 CFLAGS   += -fPIC
 #CFLAGS  += -flto
 #CFLAGS  += -Wunsafe-loop-optimizations
 CFLAGS   += $(COVFLAGS)
 
-LDFLAGS  += $(STATIC) -g $(OPT) -lm $(COVFLAGS)
+LDFLAGS  += $(STATIC) -g $(OPT) -lm $(COVFLAGS) -lmesh
 LDFLAGS  += -fPIC
 #LDFLAGS += -flto
 

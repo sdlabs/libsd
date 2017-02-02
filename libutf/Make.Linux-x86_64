@@ -1,5 +1,12 @@
 CC?=gcc
-CFLAGS+=-Wall -Wno-missing-braces -Wno-parentheses -Wno-switch -fPIC -O2 -g -c -I.
+CFLAGS+=-Wall -Wno-missing-braces -Wno-parentheses -Wno-switch -fPIC -O0 -g -c -I.
+CFLAGS+= \
+	-fno-builtin-malloc \
+	-fno-omit-frame-pointer \
+	-fno-unwind-tables \
+	-fno-asynchronous-unwind-tables \
+	-ffunction-sections \
+	-fdata-sections
 O=o
 AR=ar
 ARFLAGS=rc

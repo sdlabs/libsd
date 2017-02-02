@@ -54,7 +54,7 @@ $(LIB): libutf/libutf.a expat/.libs/libexpat.a sd.h sd_internal.h $(OBJ)
 $(DLIB): $(LIB)
 
 expat/Makefile:
-	cd expat && ./configure --enable-shared=no --enable-static=yes CC=$(CC) RANLIB=$(RANLIB) AR=$(AR) CFLAGS="-Os -g"
+	cd expat && ./configure --enable-shared=no --enable-static=yes CC=$(CC) RANLIB=$(RANLIB) AR=$(AR) CFLAGS="-O0 -g $(COMMON_FLAGS)"
 
 expat/.libs/libexpat.a: expat/Makefile
 	$(MAKE) -C expat libexpat.la
