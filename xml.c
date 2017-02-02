@@ -321,6 +321,7 @@ node_builder_unref(void *data)
 	free(nb->content);
 	for (size_t i = 0; i < nb->attrs.len; i++) {
 		ENTRY *e = nb->attrs.elems[i];
+		nb->attrs.elems[i] = NULL;
 		free(e->key);
 		free(e->data);
 		free(e);
@@ -329,6 +330,7 @@ node_builder_unref(void *data)
 	for (size_t i = 0; i < nb->children.len; i++) {
 		NodeBuilder *child = nb->children.elems[i];
 		builder_unref(&child->b);
+		nb->children.elems[i] = NULL;
 	}
 	free(nb->children.elems);
 	free(nb);

@@ -25,6 +25,10 @@ int slice_make(Slice *s, size_t len, size_t cap)
 		s->elems = calloc(cap, sizeof(*s->elems));
 		if (!s->elems)
 			return SD_ERR_NOMEM;
+		for (size_t i = 0; i < cap; i++) {
+			if (s->elems[i] != 0)
+				abort();
+		}
 	} else {
 		s->elems = NULL;
 	}
