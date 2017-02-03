@@ -144,12 +144,12 @@ sd_hash_table_new(SDHashTableType type,
 	unsigned long rand_buf[NLONG];
 
 	for (size_t i = 0; i < NLONG; i++) {
-		rand_buf[i] = random();
+		rand_buf[i] = arc4random();
 	}
 	memcpy(ht->k1, &rand_buf, KEY_SIZE);
 
 	for (size_t i = 0; i < NLONG; i++) {
-		rand_buf[i] = random();
+		rand_buf[i] = arc4random();
 	}
 	memcpy(ht->k2, &rand_buf, KEY_SIZE);
 

@@ -28,7 +28,8 @@ COMMON_FLAGS = \
 	-Werror=implicit-function-declaration \
 	-Werror=implicit-int \
 	-Werror=pointer-sign \
-	-Werror=pointer-arith
+	-Werror=pointer-arith \
+#	-fsanitize=address
 
 CPPFLAGS  = -DVERSION=\"$(VERSION)\" -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=600
 CFLAGS   += $(STATIC) -g -std=c11 $(OPT) -pthread $(WARNFLAGS) $(INCS) $(CPPFLAGS) $(COMMON_FLAGS)
@@ -37,18 +38,22 @@ CFLAGS   += -fPIC
 #CFLAGS  += -Wunsafe-loop-optimizations
 CFLAGS   += $(COVFLAGS)
 
-LDFLAGS  += $(STATIC) -g $(OPT) -lm $(COVFLAGS) -lmesh
+LDFLAGS  += $(STATIC) -g $(OPT) -lm $(COVFLAGS)
+#LDFLAGS  += -fsanitize=address -lunwind
+
+LDFLAGS  +=  -lmesh
 LDFLAGS  += -fPIC
 #LDFLAGS += -flto
 
 LCOV     ?= true #lcov
 GENHTML  ?= true #genhtml
 
-AR       ?= ar
-RANLIB   ?= ranlib
+AR       ?= llvm-ar
+RANLIB   ?= llvm-ranlib
 
 #AR       = gcc-ar
 #RANLIB   = gcc-ranlib
 
 #CC      ?= cc
 #CC       = /usr/local/musl/bin/musl-gcc
+CC        = clang

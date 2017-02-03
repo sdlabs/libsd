@@ -13,6 +13,10 @@ extern "C" {
 
 #include "utf.h"
 
+#ifdef __linux__
+uint32_t arc4random(void);
+#endif
+
 void sd_die(const char *, ...);
 
 typedef struct SDHashTable_s SDHashTable;

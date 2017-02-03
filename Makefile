@@ -1,7 +1,7 @@
 include config.mk
 
 
-SRC = util.c xml.c project.c parse.c sim.c hash_table.c siphash.c
+SRC = util.c xml.c project.c parse.c sim.c hash_table.c siphash.c compat/arc4random.c
 OBJ = $(SRC:.c=.o)
 
 LIB = libsd.a
@@ -54,13 +54,13 @@ $(LIB): libutf/libutf.a expat/.libs/libexpat.a sd.h sd_internal.h $(OBJ)
 $(DLIB): $(LIB)
 
 expat/Makefile:
-	cd expat && ./configure --enable-shared=no --enable-static=yes CC=$(CC) RANLIB=$(RANLIB) AR=$(AR) CFLAGS="-O0 -g $(COMMON_FLAGS)"
+	cd expat && ./configure --enable-shared=no --enable-static=yes CC=$(CC) RANLIB=$(RANLIB) AR=$(AR) CFLAGS="-O0 -g $(COMMON_FLAGS)" LDFLAGS="$(LDFLAGS)"
 
 expat/.libs/libexpat.a: expat/Makefile
 	$(MAKE) -C expat libexpat.la
 
 libutf/libutf.a:
-	$(MAKE) -C libutf
+	$(MAKE) -C libutf CC=$(CC) AR=$(AR) COMMON_FLAGS="$(COMMON_FLAGS)"
 
 install: $(LIB) $(EXE)
 	install -c -m 0644 sd.h $(PREFIX)/include/sd.h
