@@ -18,6 +18,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#if 0
+#define fallthrough __attribute__ ((fallthrough))
+#else
+#define fallthrough
+#endif
+
 /* default: SipHash-2-4 */
 #define cROUNDS 2
 #define dROUNDS 4
@@ -111,22 +117,22 @@ int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
 	switch (left) {
 	case 7:
 		b |= ((uint64_t)in[6]) << 48;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 6:
 		b |= ((uint64_t)in[5]) << 40;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 5:
 		b |= ((uint64_t)in[4]) << 32;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 4:
 		b |= ((uint64_t)in[3]) << 24;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 3:
 		b |= ((uint64_t)in[2]) << 16;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 2:
 		b |= ((uint64_t)in[1]) << 8;
-		__attribute__ ((fallthrough));
+		fallthrough;
 	case 1:
 		b |= ((uint64_t)in[0]);
 		break;
