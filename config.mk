@@ -12,7 +12,7 @@ INCS := -Ilibutf -Iexpat/lib
 
 #EXTENSION = '.exe'
 
-OPT       = -O0
+OPT       = -O3
 #COVFLAGS = -ftest-coverage -fprofile-arcs
 
 #STATIC   = -static
@@ -40,10 +40,11 @@ CFLAGS   += $(COVFLAGS)
 
 LDFLAGS  += $(STATIC) -g $(OPT) -lm $(COVFLAGS)
 #LDFLAGS  += -fsanitize=address -lunwind
+LDFLAGS  += -Wl,-z,now,-z,relro
 
-LDFLAGS  +=  -lmesh
+#LDFLAGS  +=  -lmesh
 LDFLAGS  += -fPIC
-#LDFLAGS += -flto
+LDFLAGS += -flto
 
 LCOV     ?= true #lcov
 GENHTML  ?= true #genhtml
