@@ -65,10 +65,10 @@ ht_index(SDHashTable *ht, const void *key)
 
 	for (size_t i = 0; i < tbl_size*16; i++) {
 		size_t hash = (h1 + i) % tbl_size;
-		printf("hash: %zu (%zu + %zu) %% %zu)\n", hash, h1, i, tbl_size);
+		//printf("hash: %zu (%zu + %zu) %% %zu)\n", hash, h1, i, tbl_size);
 		Entry *entry = &tbl[hash];
 		if (!entry->in_use || ht->equal_fn(key, entry->key)) {
-			printf("\tOK\n");
+			//printf("\tOK\n");
 			return hash;
 		}
 	}
@@ -190,7 +190,7 @@ ht_double_table(SDHashTable *ht)
 	Entry *old_tbl = ht->tbl;
 	size_t old_tbl_size = ht->tbl_size;
 
-	fprintf(stderr, "table_double to %zu!\n", ht->tbl_size*2);
+	//fprintf(stderr, "table_double to %zu!\n", ht->tbl_size*2);
 
 	ht->size = 0;
 	ht->tbl_size *= 2;
