@@ -44,7 +44,7 @@ LDFLAGS  += -Wl,-z,now,-z,relro
 
 #LDFLAGS  +=  -lmesh
 LDFLAGS  += -fPIC
-LDFLAGS += -flto
+#LDFLAGS += -flto
 
 LCOV     ?= true #lcov
 GENHTML  ?= true #genhtml
