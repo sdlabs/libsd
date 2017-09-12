@@ -38,7 +38,7 @@ utfrrune(char *s, long c)
 			continue;
 		}
 		c1 = chartorune(&r, s);
-		if(r == c)
+		if((long)r == c)
 			s1 = s;
 		s += c1;
 	}
