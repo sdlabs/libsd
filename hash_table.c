@@ -13,7 +13,7 @@
 int siphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
             uint8_t *out, const size_t outlen);
 
-typedef size_t (*SDHashFn) (uint8_t *k, const void *key);
+typedef uint64_t (*SDHashFn) (uint8_t *k, const void *key);
 typedef bool (*SDEqualFn) (const void *a, const void *b);
 
 #define LOAD_FACTOR 0.6
