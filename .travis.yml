@@ -1,5 +1,7 @@
 language: c
 compiler: clang
+dist:     trusty
+sudo:     false
 
 before_install:
   - pip install --user cpp-coveralls
