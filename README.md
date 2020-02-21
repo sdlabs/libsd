@@ -20,7 +20,7 @@ Getting & Building the code
 The build process is easy:
 
 ```
-$ git clone git@github.com:sdlabs/libsd.git
+$ git clone https://github.com/sdlabs/libsd.git
 $ cd libsd
 $ make
 $ sudo make install
